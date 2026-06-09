@@ -7,7 +7,10 @@ const emailBase = z
   .max(254, 'El correo excede la longitud máxima');
 
 export const institutionalEmailSchema = emailBase
-  .regex(/@epn\.edu\.ec$/i, 'Solo se permiten correos institucionales @epn.edu.ec')
+  .regex(
+    /^[a-z._%+-]+@epn\.edu\.ec$/,
+    'Solo se permiten correos institucionales @epn.edu.ec en minúsculas'
+  )
   .refine((email) => !email.includes('+'), 'No se permiten alias de correo (no uses +)')
   .refine(
     (email) => {
@@ -19,31 +22,21 @@ export const institutionalEmailSchema = emailBase
 
 export const strongPasswordSchema = z
   .string()
-  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .min(12, 'La contraseña debe tener al menos 12 caracteres')
   .max(128, 'La contraseña no debe exceder 128 caracteres')
   .regex(/[A-Z]/, 'Debe contener al menos una letra mayúscula')
   .regex(/[a-z]/, 'Debe contener al menos una letra minúscula')
-  .regex(/[0-9]/, 'Debe contener al menos un número')
-  .regex(
-    /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/,
-    'Debe contener al menos un carácter especial (!@#$%...)'
-  );
+  .regex(/[0-9]/, 'Debe contener al menos un número');
 
 export const fullNameSchema = z
   .string()
   .min(3, 'El nombre debe tener al menos 3 caracteres')
   .max(100, 'El nombre no debe exceder 100 caracteres')
   .regex(
-    /^[a-zA-ZáéíóúüñÁÉÍÓÚÜÑ\s'-]+$/,
-    'Solo se permiten letras, espacios, apóstrofes y guiones'
+    /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/,
+    'Solo se permiten letras'
   )
-  .transform((val) =>
-    val
-      .trim()
-      .split(/\s+/)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ')
-  );
+  .refine((val) => val.trim().length > 0, 'El nombre no puede estar vacío');
 
 export const step1EmailSchema = z.object({
   email: institutionalEmailSchema,
@@ -55,7 +48,9 @@ export const step2PasswordSchema = z.object({
 });
 
 export const step3ProfileSchema = z.object({
-  fullName: fullNameSchema,
+  nombre: fullNameSchema,
+  apellido: z.string().min(1, 'El apellido es obligatorio').regex(/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/, 'Solo se permiten letras'),
+  telefono: z.string().regex(/^[0-9]{10}$/, 'El teléfono debe tener 10 dígitos'),
   acceptTerms: z.boolean().refine((val) => val === true, {
     message: 'Debes aceptar los términos y condiciones',
   }),
@@ -66,7 +61,9 @@ export const registerSchema = z
     email: institutionalEmailSchema,
     password: strongPasswordSchema,
     confirmPassword: z.string().min(1, 'Confirma tu contraseña'),
-    fullName: fullNameSchema,
+    nombre: fullNameSchema,
+    apellido: z.string().min(1, 'El apellido es obligatorio').regex(/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/, 'Solo se permiten letras'),
+    telefono: z.string().regex(/^[0-9]{10}$/, 'El teléfono debe tener 10 dígitos'),
     acceptTerms: z.boolean().refine((val) => val === true, {
       message: 'Debes aceptar los términos y condiciones',
     }),
@@ -81,9 +78,29 @@ export type Step1EmailInput = z.infer<typeof step1EmailSchema>;
 export type Step2PasswordInput = z.infer<typeof step2PasswordSchema>;
 export type Step3ProfileInput = z.infer<typeof step3ProfileSchema>;
 
+export const loginPasswordSchema = z
+  .string()
+  .min(1, 'La contraseña es requerida')
+  .refine(
+    (pw) => pw.length >= 12,
+    'La contraseña debe tener al menos 12 caracteres'
+  )
+  .refine(
+    (pw) => /[A-Z]/.test(pw),
+    'Debe contener al menos una letra mayúscula'
+  )
+  .refine(
+    (pw) => /[a-z]/.test(pw),
+    'Debe contener al menos una letra minúscula'
+  )
+  .refine(
+    (pw) => /[0-9]/.test(pw),
+    'Debe contener al menos un número'
+  );
+
 export const loginSchema = z.object({
   email: institutionalEmailSchema,
-  password: z.string().min(1, 'La contraseña es requerida'),
+  password: loginPasswordSchema,
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -123,17 +140,16 @@ export interface PasswordStrength {
 
 export function getPasswordStrength(password: string): PasswordStrength {
   const checks = [
-    { label: '8+ caracteres', passed: password.length >= 8 },
+    { label: '12+ caracteres', passed: password.length >= 12 },
     { label: 'Una mayúscula', passed: /[A-Z]/.test(password) },
     { label: 'Una minúscula', passed: /[a-z]/.test(password) },
     { label: 'Un número', passed: /[0-9]/.test(password) },
-    { label: 'Un carácter especial', passed: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password) },
   ];
 
   const passed = checks.filter((c) => c.passed).length;
 
-  if (passed <= 2) return { score: 1, label: 'Débil', color: '#EF4444', checks };
-  if (passed <= 3) return { score: 2, label: 'Regular', color: '#F59E0B', checks };
-  if (passed <= 4) return { score: 3, label: 'Buena', color: '#3B82F6', checks };
+  if (passed <= 1) return { score: 1, label: 'Débil', color: '#EF4444', checks };
+  if (passed <= 2) return { score: 2, label: 'Regular', color: '#F59E0B', checks };
+  if (passed <= 3) return { score: 3, label: 'Buena', color: '#3B82F6', checks };
   return { score: 4, label: 'Fuerte', color: '#10B981', checks };
 }

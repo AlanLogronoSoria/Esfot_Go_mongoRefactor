@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { ExpressAuthRepository } from '@/services/express/express-repositories';
-import type { ExpressUser, ExpressLoginInput } from '@/services/express/express-types';
+import type { ExpressUser, ExpressLoginInput, ExpressProfileResult } from '@/services/express/express-types';
 
 const EXPRESS_TOKEN_KEY = 'epn_express_token';
 const EXPRESS_USER_KEY = 'epn_express_user';
@@ -22,6 +22,55 @@ interface ExpressAuthState {
 }
 
 const authRepo = new ExpressAuthRepository();
+
+async function fetchProfile(token: string): Promise<ExpressUser> {
+  const res = await authRepo.getProfile(token);
+  if (res.error || !res.data) {
+    console.log('[ExpressAuth] Error al obtener perfil:', res.error);
+    throw new Error(res.error ?? 'Error al obtener perfil');
+  }
+  const p = res.data as unknown as ExpressProfileResult;
+  return {
+    _id: p._id,
+    nombre: p.nombre,
+    apellido: p.apellido,
+    email: p.email,
+    telefono: p.telefono,
+    rol: (p.rol as ExpressUser['rol']) ?? 'estudiante',
+    imagen: p.imagen,
+  };
+}
+
+async function doLogin(
+  loginFn: (input: ExpressLoginInput) => ReturnType<typeof authRepo.loginEstudiante>,
+  input: ExpressLoginInput,
+  set: (partial: Partial<ExpressAuthState>) => void
+): Promise<ExpressUser> {
+  set({ isLoading: true });
+  try {
+    const res = await loginFn(input);
+    if (res.error || !res.data) {
+      console.log('[ExpressAuth] Login error:', res.error);
+      throw new Error(res.error ?? 'Error al iniciar sesión');
+    }
+
+    const token = res.data.token;
+    console.log('[ExpressAuth] Token recibido, obteniendo perfil...');
+
+    const user = await fetchProfile(token);
+    console.log('[ExpressAuth] Login exitoso:', user.email);
+
+    await SecureStore.setItemAsync(EXPRESS_TOKEN_KEY, token);
+    await SecureStore.setItemAsync(EXPRESS_USER_KEY, JSON.stringify(user));
+    set({ expressUser: user, expressToken: token });
+    return user;
+  } catch (err) {
+    console.log('[ExpressAuth] Excepción en login:', (err as Error)?.message ?? err);
+    throw err;
+  } finally {
+    set({ isLoading: false });
+  }
+}
 
 export const useExpressAuthStore = create<ExpressAuthState>((set, get) => ({
   expressUser: null,
@@ -47,77 +96,14 @@ export const useExpressAuthStore = create<ExpressAuthState>((set, get) => ({
     }
   },
 
-  loginEstudiante: async (input: ExpressLoginInput) => {
-    set({ isLoading: true });
-    console.log('[ExpressAuth] loginEstudiante:', input.email);
-    try {
-      const res = await authRepo.loginEstudiante(input);
-      if (res.error || !res.data) {
-        console.log('[ExpressAuth] loginEstudiante error:', res.error);
-        throw new Error(res.error ?? 'Error al iniciar sesión');
-      }
+  loginEstudiante: (input: ExpressLoginInput) =>
+    doLogin((i) => authRepo.loginEstudiante(i), input, set),
 
-      const { token, user } = res.data;
-      console.log('[ExpressAuth] loginEstudiante exitoso:', user.email);
-      await SecureStore.setItemAsync(EXPRESS_TOKEN_KEY, token);
-      await SecureStore.setItemAsync(EXPRESS_USER_KEY, JSON.stringify(user));
-      set({ expressUser: user, expressToken: token });
-      return user;
-    } catch (err) {
-      console.log('[ExpressAuth] loginEstudiante excepción:', (err as Error)?.message ?? err);
-      throw err;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+  loginAdmin: (input: ExpressLoginInput) =>
+    doLogin((i) => authRepo.loginAdmin(i), input, set),
 
-  loginAdmin: async (input: ExpressLoginInput) => {
-    set({ isLoading: true });
-    console.log('[ExpressAuth] loginAdmin:', input.email);
-    try {
-      const res = await authRepo.loginAdmin(input);
-      if (res.error || !res.data) {
-        console.log('[ExpressAuth] loginAdmin error:', res.error);
-        throw new Error(res.error ?? 'Error al iniciar sesión');
-      }
-
-      const { token, user } = res.data;
-      console.log('[ExpressAuth] loginAdmin exitoso:', user.email);
-      await SecureStore.setItemAsync(EXPRESS_TOKEN_KEY, token);
-      await SecureStore.setItemAsync(EXPRESS_USER_KEY, JSON.stringify(user));
-      set({ expressUser: user, expressToken: token });
-      return user;
-    } catch (err) {
-      console.log('[ExpressAuth] loginAdmin excepción:', (err as Error)?.message ?? err);
-      throw err;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  loginDocente: async (input: ExpressLoginInput) => {
-    set({ isLoading: true });
-    console.log('[ExpressAuth] loginDocente:', input.email);
-    try {
-      const res = await authRepo.loginDocente(input);
-      if (res.error || !res.data) {
-        console.log('[ExpressAuth] loginDocente error:', res.error);
-        throw new Error(res.error ?? 'Error al iniciar sesión');
-      }
-
-      const { token, user } = res.data;
-      console.log('[ExpressAuth] loginDocente exitoso:', user.email);
-      await SecureStore.setItemAsync(EXPRESS_TOKEN_KEY, token);
-      await SecureStore.setItemAsync(EXPRESS_USER_KEY, JSON.stringify(user));
-      set({ expressUser: user, expressToken: token });
-      return user;
-    } catch (err) {
-      console.log('[ExpressAuth] loginDocente excepción:', (err as Error)?.message ?? err);
-      throw err;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
+  loginDocente: (input: ExpressLoginInput) =>
+    doLogin((i) => authRepo.loginDocente(i), input, set),
 
   logoutExpress: async () => {
     console.log('[ExpressAuth] logoutExpress...');

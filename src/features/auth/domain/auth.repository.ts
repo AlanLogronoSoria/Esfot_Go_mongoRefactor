@@ -9,6 +9,7 @@ export interface RegistrationResult {
 export interface IAuthRepository {
   signIn(input: LoginInput): Promise<{ user: User; token: string }>;
   signUp(input: RegisterInput): Promise<RegistrationResult>;
+  signUpDocente(input: RegisterInput): Promise<RegistrationResult>;
   resendVerificationEmail(email: string): Promise<void>;
   checkEmailVerification(email: string): Promise<boolean>;
   signOut(): Promise<void>;

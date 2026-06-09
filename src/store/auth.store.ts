@@ -25,7 +25,7 @@ interface AuthState {
 
   initialize: () => Promise<void>;
   signIn: (input: LoginInput, rememberMe?: boolean) => Promise<void>;
-  signUp: (input: RegisterInput) => Promise<{ emailConfirmationRequired: boolean }>;
+  signUp: (input: RegisterInput, role?: 'estudiante' | 'docente') => Promise<{ emailConfirmationRequired: boolean }>;
   signOut: () => Promise<void>;
   secureLogout: () => Promise<void>;
   updateProfile: (input: UpdateProfileInput) => Promise<void>;
@@ -142,17 +142,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signUp: async (input: RegisterInput) => {
+  signUp: async (input: RegisterInput, role: 'estudiante' | 'docente' = 'estudiante') => {
     set({ isLoading: true, registrationError: null });
-    console.log('[AuthStore] signUp:', input.email);
+    console.log('[AuthStore] signUp:', input.email, 'role:', role);
     try {
       const result = await authService.registerUser.execute({
         email: input.email.toLowerCase().trim(),
         password: input.password,
         confirmPassword: input.confirmPassword,
-        fullName: input.fullName,
+        nombre: input.nombre,
+        apellido: input.apellido,
+        telefono: input.telefono,
         acceptTerms: true,
-      });
+      }, role);
 
       console.log('[AuthStore] signUp completado, requiere verificación:', result.emailConfirmationRequired);
 

@@ -38,6 +38,7 @@ import { useRouter } from 'expo-router';
 import { AppError } from '@/core/errors/app-error';
 
 type Step = 1 | 2 | 3;
+type RegisterRole = 'estudiante' | 'docente';
 
 const STEP_TITLES: Record<Step, string> = {
   1: 'Tu correo institucional',
@@ -51,6 +52,11 @@ const STEP_SUBTITLES: Record<Step, string> = {
   3: 'Cuéntanos quién eres',
 };
 
+const ROLE_LABELS: { role: RegisterRole; label: string }[] = [
+  { role: 'estudiante', label: 'Estudiante' },
+  { role: 'docente', label: 'Docente' },
+];
+
 const TOTAL_STEPS = 3;
 
 export function RegistrationForm() {
@@ -61,6 +67,7 @@ export function RegistrationForm() {
 
   const [step, setStep] = useState<Step>(1);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<RegisterRole>('estudiante');
 
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
@@ -133,6 +140,21 @@ export function RegistrationForm() {
         <Text style={styles.stepSubtitle}>{STEP_SUBTITLES[step]}</Text>
       </Animated.View>
 
+      {/* Role selector */}
+      <View style={styles.roleRow}>
+        {ROLE_LABELS.map(({ role, label }) => (
+          <Pressable
+            key={role}
+            style={[styles.roleChip, selectedRole === role && styles.roleChipActive]}
+            onPress={() => setSelectedRole(role)}
+          >
+            <Text style={[styles.roleChipText, selectedRole === role && styles.roleChipTextActive]}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {/* Server error */}
       {serverError && (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.errorBanner}>
@@ -176,9 +198,11 @@ export function RegistrationForm() {
                   email: emailValue,
                   password: passwordValue,
                   confirmPassword: passwordValue,
-                  fullName: data.fullName,
+                  nombre: data.nombre,
+                  apellido: data.apellido,
+                  telefono: data.telefono,
                   acceptTerms: true,
-                });
+                }, selectedRole);
                 setRegistrationEmail(emailValue);
                 router.replace('/auth/verify');
               } catch (error) {
@@ -340,7 +364,7 @@ function Step2Password({
           render={({ field: { onChange, onBlur, value } }) => (
             <RNTextInput
               style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Crea una contraseña fuerte"
+              placeholder="Crea una contraseña fuerte (mín. 12 caracteres)"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               autoFocus
@@ -423,21 +447,21 @@ function Step3Profile({
     formState: { errors },
   } = useForm<Step3ProfileInput>({
     resolver: zodResolver(step3ProfileSchema),
-    defaultValues: { fullName: '', acceptTerms: false },
+    defaultValues: { nombre: '', apellido: '', telefono: '', acceptTerms: false },
     mode: 'onChange',
   });
 
   return (
     <View style={styles.stepForm}>
       <View style={styles.field}>
-        <Text style={styles.label}>Nombre completo</Text>
+        <Text style={styles.label}>Nombre</Text>
         <Controller
           control={control}
-          name="fullName"
+          name="nombre"
           render={({ field: { onChange, onBlur, value } }) => (
             <RNTextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
-              placeholder="Ej: Juan Pérez"
+              style={[styles.input, errors.nombre && styles.inputError]}
+              placeholder="Ej: Juan"
               placeholderTextColor="#9CA3AF"
               autoCapitalize="words"
               autoFocus
@@ -447,9 +471,58 @@ function Step3Profile({
             />
           )}
         />
-        {errors.fullName && (
+        {errors.nombre && (
           <Animated.Text entering={FadeIn} style={styles.errorText}>
-            {errors.fullName.message}
+            {errors.nombre.message}
+          </Animated.Text>
+        )}
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Apellido</Text>
+        <Controller
+          control={control}
+          name="apellido"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <RNTextInput
+              style={[styles.input, errors.apellido && styles.inputError]}
+              placeholder="Ej: Pérez"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="words"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+            />
+          )}
+        />
+        {errors.apellido && (
+          <Animated.Text entering={FadeIn} style={styles.errorText}>
+            {errors.apellido.message}
+          </Animated.Text>
+        )}
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Teléfono</Text>
+        <Controller
+          control={control}
+          name="telefono"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <RNTextInput
+              style={[styles.input, errors.telefono && styles.inputError]}
+              placeholder="0991234567"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              maxLength={10}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+            />
+          )}
+        />
+        {errors.telefono && (
+          <Animated.Text entering={FadeIn} style={styles.errorText}>
+            {errors.telefono.message}
           </Animated.Text>
         )}
       </View>
@@ -734,6 +807,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  roleRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  roleChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#D1D5DB',
+    alignItems: 'center', backgroundColor: '#F9FAFB',
+  },
+  roleChipActive: { borderColor: '#00205B', backgroundColor: '#EFF6FF' },
+  roleChipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  roleChipTextActive: { color: '#00205B' },
 
   errorBanner: {
     backgroundColor: '#FEE2E2',

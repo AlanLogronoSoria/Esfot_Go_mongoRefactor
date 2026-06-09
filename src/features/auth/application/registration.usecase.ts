@@ -9,12 +9,15 @@ import {
 export class RegisterUserUseCase {
   constructor(private readonly authRepository: IAuthRepository) {}
 
-  async execute(input: RegisterInput): Promise<RegistrationResult> {
+  async execute(input: RegisterInput, role: 'estudiante' | 'docente' = 'estudiante'): Promise<RegistrationResult> {
     this.validateDomain(input.email);
     this.validatePasswordStrength(input.password);
 
     try {
-      const result = await this.authRepository.signUp(input);
+      const result =
+        role === 'docente'
+          ? await this.authRepository.signUpDocente(input)
+          : await this.authRepository.signUp(input);
       return result;
     } catch (error) {
       if (error instanceof AppError) {

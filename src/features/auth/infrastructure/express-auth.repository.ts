@@ -34,10 +34,16 @@ export class ExpressAuthRepository implements IAuthRepository {
   }
 
   async signUp(input: RegisterInput): Promise<RegistrationResult> {
-    console.log('[ExpressRepo] signUp:', input.email);
+    console.log('[ExpressRepo] signUp:', input.email, input.nombre, input.apellido);
     const { data, error } = await expressClient.post<RegisterResponse>(
       '/estudiantes/registro',
-      { nombre: input.fullName, email: input.email.toLowerCase().trim(), password: input.password }
+      {
+        email: input.email.toLowerCase().trim(),
+        password: input.password,
+        nombre: input.nombre.trim(),
+        apellido: input.apellido.trim(),
+        telefono: input.telefono,
+      }
     );
     if (error || !data) {
       console.log('[ExpressRepo] signUp error:', error);
@@ -47,10 +53,40 @@ export class ExpressAuthRepository implements IAuthRepository {
     const user: User = {
       id: (data.user as Record<string, unknown>)?.['_id'] as string ?? '',
       email: input.email.toLowerCase().trim(),
-      fullName: input.fullName,
+      fullName: `${input.nombre.trim()} ${input.apellido.trim()}`,
       role: 'estudiante',
       avatarUrl: null,
-      phone: null,
+      phone: input.telefono,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    return { user, emailConfirmationRequired: data.emailConfirmationRequired ?? false };
+  }
+
+  async signUpDocente(input: RegisterInput): Promise<RegistrationResult> {
+    console.log('[ExpressRepo] signUpDocente:', input.email);
+    const { data, error } = await expressClient.post<RegisterResponse>(
+      '/docente/registro',
+      {
+        email: input.email.toLowerCase().trim(),
+        password: input.password,
+        nombre: input.nombre.trim(),
+        apellido: input.apellido.trim(),
+        telefono: input.telefono,
+      }
+    );
+    if (error || !data) {
+      console.log('[ExpressRepo] signUpDocente error:', error);
+      throw new AuthError(error ?? 'Error al registrar docente');
+    }
+    console.log('[ExpressRepo] signUpDocente exitoso');
+    const user: User = {
+      id: (data.user as Record<string, unknown>)?.['_id'] as string ?? '',
+      email: input.email.toLowerCase().trim(),
+      fullName: `${input.nombre.trim()} ${input.apellido.trim()}`,
+      role: 'docente',
+      avatarUrl: null,
+      phone: input.telefono,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

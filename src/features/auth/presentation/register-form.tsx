@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Pressable,
 } from 'react-native';
 import { registerSchema } from '@/features/auth/domain/auth.schema';
 import type { RegisterInput } from '@/features/auth/domain/auth.schema';
@@ -15,11 +16,19 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { AppError } from '@/core/errors/app-error';
 
+type RegisterRole = 'estudiante' | 'docente';
+
+const ROLE_LABELS: { role: RegisterRole; label: string }[] = [
+  { role: 'estudiante', label: 'Estudiante' },
+  { role: 'docente', label: 'Docente' },
+];
+
 export function RegisterForm() {
   const router = useRouter();
   const signUp = useAuthStore((s) => s.signUp);
   const isLoading = useAuthStore((s) => s.isLoading);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [selectedRole, setSelectedRole] = useState<RegisterRole>('estudiante');
 
   const {
     control,
@@ -31,14 +40,16 @@ export function RegisterForm() {
       email: '',
       password: '',
       confirmPassword: '',
-      fullName: '',
+      nombre: '',
+      apellido: '',
+      telefono: '',
     },
   });
 
   const onSubmit = async (data: RegisterInput) => {
     setServerError(null);
     try {
-      const result = await signUp(data);
+      const result = await signUp(data, selectedRole);
       if (result.emailConfirmationRequired) {
         router.replace('/auth/verify');
       } else {
@@ -61,15 +72,30 @@ export function RegisterForm() {
         </View>
       )}
 
+      {/* Role selector — matches web registration */}
+      <View style={styles.roleRow}>
+        {ROLE_LABELS.map(({ role, label }) => (
+          <Pressable
+            key={role}
+            style={[styles.roleChip, selectedRole === role && styles.roleChipActive]}
+            onPress={() => setSelectedRole(role)}
+          >
+            <Text style={[styles.roleChipText, selectedRole === role && styles.roleChipTextActive]}>
+              {label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       <View style={styles.field}>
-        <Text style={styles.label}>Nombre completo</Text>
+        <Text style={styles.label}>Nombre</Text>
         <Controller
           control={control}
-          name="fullName"
+          name="nombre"
           render={({ field: { onChange, onBlur, value } }) => (
             <RNTextInput
-              style={[styles.input, errors.fullName && styles.inputError]}
-              placeholder="Tu nombre y apellido"
+              style={[styles.input, errors.nombre && styles.inputError]}
+              placeholder="Tu nombre"
               placeholderTextColor="#9CA3AF"
               autoCapitalize="words"
               onBlur={onBlur}
@@ -78,7 +104,48 @@ export function RegisterForm() {
             />
           )}
         />
-        {errors.fullName && <Text style={styles.errorText}>{errors.fullName.message}</Text>}
+        {errors.nombre && <Text style={styles.errorText}>{errors.nombre.message}</Text>}
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Apellido</Text>
+        <Controller
+          control={control}
+          name="apellido"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <RNTextInput
+              style={[styles.input, errors.apellido && styles.inputError]}
+              placeholder="Tu apellido"
+              placeholderTextColor="#9CA3AF"
+              autoCapitalize="words"
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+            />
+          )}
+        />
+        {errors.apellido && <Text style={styles.errorText}>{errors.apellido.message}</Text>}
+      </View>
+
+      <View style={styles.field}>
+        <Text style={styles.label}>Teléfono</Text>
+        <Controller
+          control={control}
+          name="telefono"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <RNTextInput
+              style={[styles.input, errors.telefono && styles.inputError]}
+              placeholder="0991234567"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="phone-pad"
+              maxLength={10}
+              onBlur={onBlur}
+              onChangeText={onChange}
+              value={value}
+            />
+          )}
+        />
+        {errors.telefono && <Text style={styles.errorText}>{errors.telefono.message}</Text>}
       </View>
 
       <View style={styles.field}>
@@ -111,7 +178,7 @@ export function RegisterForm() {
           render={({ field: { onChange, onBlur, value } }) => (
             <RNTextInput
               style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Mínimo 8 caracteres, una mayúscula y un número"
+              placeholder="Mínimo 12 caracteres, una mayúscula y un número"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               onBlur={onBlur}
@@ -165,6 +232,15 @@ const styles = StyleSheet.create({
   container: {
     gap: 20,
   },
+  roleRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  roleChip: {
+    flex: 1, paddingVertical: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#D1D5DB',
+    alignItems: 'center', backgroundColor: '#F9FAFB',
+  },
+  roleChipActive: { borderColor: '#1B6BB0', backgroundColor: '#EFF6FF' },
+  roleChipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
+  roleChipTextActive: { color: '#1B6BB0' },
   errorBanner: {
     backgroundColor: '#FEE2E2',
     borderRadius: 8,

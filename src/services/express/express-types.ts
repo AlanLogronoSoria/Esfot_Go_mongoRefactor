@@ -18,7 +18,18 @@ export interface ExpressLoginInput {
 
 export interface ExpressLoginResult {
   token: string;
-  user: ExpressUser;
+  _id: string;
+  id?: string;
+}
+
+export interface ExpressProfileResult {
+  _id: string;
+  nombre: string;
+  apellido?: string;
+  email: string;
+  telefono?: string;
+  rol?: string;
+  imagen?: string;
 }
 
 export interface ExpressRegisterInput {
