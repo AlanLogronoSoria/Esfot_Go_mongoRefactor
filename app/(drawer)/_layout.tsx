@@ -31,6 +31,7 @@ function CustomDrawerContent() {
       { icon: '📤', label: 'Carga Masiva', route: '/bulk-upload' },
     ] : []),
     ...(isDocente ? [{ icon: '👨‍🏫', label: 'Tutorias', route: '/tutorias' }] : []),
+    { icon: '💬', label: 'Chat', route: '/chat' },
     { icon: '⚙️', label: 'Configuracion', route: '/config' },
     { icon: '❓', label: 'Ayuda', route: '/help' },
   ];
@@ -115,6 +116,7 @@ export default function DrawerLayout() {
       <Drawer.Screen name="help" />
       <Drawer.Screen name="favorites" />
       <Drawer.Screen name="bulk-upload" />
+      <Drawer.Screen name="chat" />
     </Drawer>
   );
 }

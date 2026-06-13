@@ -95,10 +95,19 @@ export default function TutoriasScreen() {
           </View>
           {item.description && <Text style={styles.desc} numberOfLines={2}>{item.description}</Text>}
           <View style={styles.meta}>
-            <View style={styles.metaRow}>
-              <Calendar size={14} color={T.textSecondary} />
-              <Text style={styles.metaItem}>{item.date} · {item.time}</Text>
-            </View>
+            {item.horarios && item.horarios.length > 0 ? (
+              item.horarios.map((h, i) => (
+                <View style={styles.metaRow} key={i}>
+                  <Calendar size={14} color={T.textSecondary} />
+                  <Text style={styles.metaItem}>{h.dia}  {h.horaInicio} - {h.horaFin}</Text>
+                </View>
+              ))
+            ) : (
+              <View style={styles.metaRow}>
+                <Calendar size={14} color={T.textSecondary} />
+                <Text style={styles.metaItem}>{item.date} · {item.time}</Text>
+              </View>
+            )}
             <View style={styles.metaRow}>
               <Clock size={14} color={T.textSecondary} />
               <Text style={styles.metaItem}>{item.duration} min</Text>

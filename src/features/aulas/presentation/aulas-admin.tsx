@@ -1,28 +1,32 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Modal } from 'react-native';
-import { useInfiniteEvents, useDeleteEvent } from '@/features/events/application/event.hooks';
-import { EventForm } from './event-form';
-import type { Event } from '@/features/events/domain/event.entity';
-import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
-import { Edit2, Trash2, Calendar } from 'lucide-react-native';
+import {
+  View, Text, FlatList, StyleSheet, ActivityIndicator,
+  Alert, TouchableOpacity, Modal,
+} from 'react-native';
+import { useAulas } from '@/features/aulas/application/aulas.hooks';
+import { useDeleteAula } from '@/features/aulas/application/aulas-admin.hooks';
+import { AulaForm } from './aula-form';
+import type { Aula } from '@/services/express/express-types';
+import { LightTheme as T, Typography } from '@/constants/design-system';
+import { Edit2, Trash2, DoorOpen } from 'lucide-react-native';
 import { AppCard } from '@/components/ui/app-card';
 import { AppButton } from '@/components/ui/app-button';
 import { EmptyState } from '@/components/ui/empty-state';
 
-export function EventsAdmin() {
-  const { data: events, isLoading, isRefetching, refetch, fetchNextPage, hasNextPage, isFetchingNextPage, totalCount } = useInfiniteEvents();
-  const deleteMutation = useDeleteEvent();
+export function AulasAdmin() {
+  const { data: aulas, isLoading, isRefetching, refetch } = useAulas();
+  const deleteMutation = useDeleteAula();
 
   const [showForm, setShowForm] = useState(false);
-  const [editTarget, setEditTarget] = useState<Event | null>(null);
+  const [editTarget, setEditTarget] = useState<Aula | null>(null);
 
   const handleCreate = useCallback(() => {
     setEditTarget(null);
     setShowForm(true);
   }, []);
 
-  const handleEdit = useCallback((event: Event) => {
-    setEditTarget(event);
+  const handleEdit = useCallback((aula: Aula) => {
+    setEditTarget(aula);
     setShowForm(true);
   }, []);
 
@@ -31,30 +35,48 @@ export function EventsAdmin() {
     setEditTarget(null);
   }, []);
 
-  const handleDelete = useCallback((event: Event) => {
-    Alert.alert('Eliminar evento', `¿Eliminar "${event.title}"?`, [
+  const handleDelete = useCallback((aula: Aula) => {
+    Alert.alert('Eliminar aula', `¿Eliminar "${aula.nombre}"?`, [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Eliminar', style: 'destructive', onPress: () => deleteMutation.mutate(event.id) },
+      {
+        text: 'Eliminar',
+        style: 'destructive',
+        onPress: () => deleteMutation.mutate(aula._id),
+      },
     ]);
   }, [deleteMutation]);
+
+  const aulasList = aulas ?? [];
 
   return (
     <View style={s.container}>
       <View style={s.header}>
-        <Text style={s.title}>Eventos ({totalCount})</Text>
+        <Text style={s.title}>Aulas ({aulasList.length})</Text>
         <TouchableOpacity style={s.createBtn} onPress={handleCreate} activeOpacity={0.8}>
           <Text style={s.createBtnText}>+ Crear</Text>
         </TouchableOpacity>
       </View>
-      {isLoading && <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 20 }} />}
+
+      {isLoading && (
+        <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 20 }} />
+      )}
+
       <FlatList
-        data={events}
-        keyExtractor={(item) => item.id}
+        data={aulasList}
+        keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
           <AppCard style={s.cardWrapper}>
             <View style={s.cardContent}>
-              <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
-              <Text style={s.cardMeta}>{item.location ?? 'Sin ubicación'} · {new Date(item.startDate).toLocaleDateString('es')}</Text>
+              <Text style={s.cardTitle} numberOfLines={1}>{item.nombre}</Text>
+              <Text style={s.cardMeta}>
+                {item.ubicacion ?? 'Sin ubicación'}
+                {item.capacidad ? `  ·  ${item.capacidad} personas` : ''}
+              </Text>
+              {item.estado && (
+                <View style={[s.estadoBadge, item.estado === 'disponible' ? s.estadoDisponible : item.estado === 'ocupado' ? s.estadoOcupado : s.estadoMantenimiento]}>
+                  <Text style={s.estadoText}>{item.estado}</Text>
+                </View>
+              )}
             </View>
             <View style={s.actions}>
               <AppButton variant="ghost" size="sm" icon={<Edit2 size={16} color={T.primary} />} onPress={() => handleEdit(item)} />
@@ -63,11 +85,17 @@ export function EventsAdmin() {
           </AppCard>
         )}
         contentContainerStyle={s.list}
-        onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
-        onEndReachedThreshold={0.4}
         refreshing={isRefetching}
         onRefresh={() => refetch()}
-        ListEmptyComponent={!isLoading ? <EmptyState icon={Calendar} title="No hay eventos" description="No se han encontrado eventos próximos." /> : null}
+        ListEmptyComponent={
+          !isLoading ? (
+            <EmptyState
+              icon={DoorOpen}
+              title="No hay aulas"
+              description="No se han encontrado aulas registradas."
+            />
+          ) : null
+        }
         removeClippedSubviews
       />
 
@@ -78,15 +106,15 @@ export function EventsAdmin() {
         onRequestClose={handleCloseForm}
       >
         <View style={s.modalHeader}>
-          <Text style={s.modalTitle}>{editTarget ? 'Editar evento' : 'Crear evento'}</Text>
+          <Text style={s.modalTitle}>{editTarget ? 'Editar aula' : 'Crear aula'}</Text>
           <TouchableOpacity onPress={handleCloseForm} style={s.modalCloseBtn}>
             <Text style={s.modalCloseBtnText}>✕</Text>
           </TouchableOpacity>
         </View>
-        <EventForm
+        <AulaForm
           onClose={handleCloseForm}
           onSuccess={() => refetch()}
-          editEvent={editTarget ?? undefined}
+          editData={editTarget ?? undefined}
         />
       </Modal>
     </View>
@@ -109,6 +137,11 @@ const s = StyleSheet.create({
   cardContent: { flex: 1 },
   cardTitle: { fontSize: 14, fontWeight: '700', color: T.textPrimary },
   cardMeta: { fontSize: 12, color: T.textSecondary, marginTop: 2 },
+  estadoBadge: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginTop: 6 },
+  estadoDisponible: { backgroundColor: 'rgba(48,209,88,0.15)' },
+  estadoOcupado: { backgroundColor: 'rgba(255,69,58,0.15)' },
+  estadoMantenimiento: { backgroundColor: 'rgba(255,214,10,0.15)' },
+  estadoText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize', color: T.textSecondary },
   actions: { flexDirection: 'row', gap: 4 },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
   modalTitle: { ...Typography.h3, color: T.textPrimary },

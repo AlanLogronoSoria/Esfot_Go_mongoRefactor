@@ -39,7 +39,7 @@ export class ExpressUserManagementRepository {
     token: string
   ): Promise<ApiResponse<{ msg: string }>> {
     if (isDevMode()) return { data: { msg: 'Usuario actualizado' }, error: null, status: 200 };
-    return expressClient.put(`/actualizardocente/${id}`, data, token);
+    return expressClient.put(`/admin/actualizardocente/${id}`, data, token);
   }
 
   async deleteEstudiante(
@@ -47,7 +47,7 @@ export class ExpressUserManagementRepository {
     token: string
   ): Promise<ApiResponse<{ msg: string }>> {
     if (isDevMode()) return { data: { msg: 'Usuario eliminado' }, error: null, status: 200 };
-    return expressClient.delete(`/eliminarestudiante/${id}`, token);
+    return expressClient.delete(`/admin/eliminarestudiante/${id}`, token);
   }
 
   async deleteDocente(

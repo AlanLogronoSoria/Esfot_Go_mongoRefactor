@@ -334,9 +334,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({
       registrationEmail: null,
       registrationStep: 'form',
-  registrationError: null,
-
-  unsubscribeAuth: null,
+      registrationError: null,
     }),
 
   setGpsPermission: (granted: boolean) =>

@@ -8,12 +8,12 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { z } from 'zod';
 import { strongPasswordSchema, getPasswordStrength } from '@/features/auth/domain/auth.schema';
-import { expressClient } from '@/services/express/api-client';
-import { useRouter } from 'expo-router';
+import { useAuthStore } from '@/store/auth.store';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import type { PasswordStrength } from '@/features/auth/domain/auth.schema';
 
 const resetPasswordSchema = z
@@ -30,9 +30,24 @@ type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export function ResetPasswordForm() {
   const router = useRouter();
+  const { token } = useLocalSearchParams<{ token?: string }>();
+  const verifyResetToken = useAuthStore((s) => s.verifyResetToken);
+  const resetPassword = useAuthStore((s) => s.resetPassword);
+  const storeLoading = useAuthStore((s) => s.isLoading);
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [tokenState, setTokenState] = useState<'verifying' | 'invalid' | 'valid'>('verifying');
+
+  useEffect(() => {
+    if (!token) {
+      setTokenState('invalid');
+      return;
+    }
+    verifyResetToken(token as string).then((valid) => {
+      setTokenState(valid ? 'valid' : 'invalid');
+    });
+  }, [token, verifyResetToken]);
 
   const {
     control,
@@ -52,28 +67,19 @@ export function ResetPasswordForm() {
     setServerError(null);
     setIsLoading(true);
     try {
-      const { error } = await expressClient.post<{ msg: string }>('/estudiantes/reset-password', {
-        password: data.password,
-      });
-
-      if (error) throw error;
-
+      await resetPassword(token as string, data.password, data.confirmPassword);
       setSuccess(true);
       setTimeout(() => {
         router.replace('/auth/login');
       }, 2500);
     } catch (error) {
-      const err = error as Record<string, unknown>;
-      if (err?.message && typeof err.message === 'string') {
-        if (err.message.includes('same as old')) {
-          setServerError('La nueva contraseña no puede ser igual a la anterior');
-        } else if (err.message.includes('weak')) {
-          setServerError('La contraseña no cumple los requisitos de seguridad');
-        } else {
-          setServerError('Error al actualizar la contraseña. Intenta de nuevo.');
-        }
+      const message = error instanceof Error ? error.message : 'Error al actualizar la contraseña. Intenta de nuevo.';
+      if (message.includes('same as old')) {
+        setServerError('La nueva contraseña no puede ser igual a la anterior');
+      } else if (message.includes('weak')) {
+        setServerError('La contraseña no cumple los requisitos de seguridad');
       } else {
-        setServerError('Error al actualizar la contraseña. Intenta de nuevo.');
+        setServerError(message);
       }
     } finally {
       setIsLoading(false);
@@ -87,6 +93,33 @@ export function ResetPasswordForm() {
         <Text style={styles.successTitle}>¡Contraseña actualizada!</Text>
         <Text style={styles.successText}>Redirigiendo al inicio de sesión...</Text>
       </Animated.View>
+    );
+  }
+
+  if (tokenState === 'verifying') {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#00205B" />
+        <Text style={{ textAlign: 'center', marginTop: 12, color: '#6B7280' }}>Verificando enlace...</Text>
+      </View>
+    );
+  }
+
+  if (tokenState === 'invalid') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Enlace inválido</Text>
+        <Text style={styles.subtitle}>
+          El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.
+        </Text>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => router.replace('/auth/recover')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.buttonText}>Solicitar nuevo enlace</Text>
+        </TouchableOpacity>
+      </View>
     );
   }
 
@@ -130,7 +163,7 @@ export function ResetPasswordForm() {
           render={({ field: { onChange, onBlur, value } }) => (
             <RNTextInput
               style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Mínimo 8 caracteres, una mayúscula, un número y un símbolo"
+              placeholder="Mínimo 12 caracteres, una mayúscula, una minúscula y un número"
               placeholderTextColor="#9CA3AF"
               secureTextEntry
               onBlur={onBlur}
@@ -171,12 +204,12 @@ export function ResetPasswordForm() {
       </View>
 
       <TouchableOpacity
-        style={[styles.button, isLoading && styles.buttonDisabled]}
+        style={[styles.button, (isLoading || storeLoading) && styles.buttonDisabled]}
         onPress={handleSubmit(onSubmit)}
-        disabled={isLoading}
+        disabled={isLoading || storeLoading}
         activeOpacity={0.8}
       >
-        {isLoading ? (
+        {isLoading || storeLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Actualizar contraseña</Text>

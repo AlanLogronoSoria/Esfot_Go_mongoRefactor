@@ -181,7 +181,7 @@ export class ExpressAuthRepository implements IAuthRepository {
   async resetPassword(token: string, password: string, confirmPassword: string): Promise<void> {
     const { error } = await expressClient.post(`/nuevopassword/${token}`, {
       password,
-      confirmpassword: confirmPassword,
+      confirmPassword,
     });
     if (error) throw new AuthError(error);
   }

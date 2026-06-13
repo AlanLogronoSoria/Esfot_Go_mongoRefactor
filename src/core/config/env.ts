@@ -15,7 +15,7 @@ function loadEnv(): Env {
   let apiBaseUrl = 'http://localhost:3000/api';
 
   try {
-    devMode = String(process.env.EXPO_PUBLIC_DEV_MODE ?? 'true');
+    devMode = String(process.env.EXPO_PUBLIC_DEV_MODE ?? 'false');
     apiBaseUrl = String(process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api');
   } catch {
     // Env vars not available at module evaluation time

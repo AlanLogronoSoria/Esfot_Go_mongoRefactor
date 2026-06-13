@@ -22,7 +22,11 @@ interface TutoriaResponseDto {
 // ─── Mappers ────────────────────────────────────────────────
 
 function mapDtoToTutoria(dto: TutoriaResponseDto): Tutoria {
-  const horarios = dto.horarios ?? [];
+  const horarios = (dto.horarios ?? []).map((h) => ({
+    dia: h.dia,
+    horaInicio: h.horaInicio,
+    horaFin: h.horaFin,
+  }));
   const firstHorario = horarios[0];
   return {
     id: dto._id,
@@ -35,6 +39,7 @@ function mapDtoToTutoria(dto: TutoriaResponseDto): Tutoria {
     location: dto.oficina ?? undefined,
     maxStudents: 20,
     enrolledCount: 0,
+    horarios,
     status: (dto.estado ?? 'programada') as Tutoria['status'],
     createdBy: '',
     createdAt: dto.created_at ?? new Date().toISOString(),
@@ -47,7 +52,9 @@ function mapTutoriaToBackendDto(input: Omit<Tutoria, 'id' | 'createdAt' | 'updat
     docente: input.subject,
     oficina: input.location ?? '',
     informacion: input.description ?? input.title,
-    horarios: [{ dia: 'Lunes', horaInicio: input.time?.slice(0, 5) ?? '08:00', horaFin: '10:00' }],
+    horarios: (input.horarios && input.horarios.length > 0)
+      ? input.horarios.map((h) => ({ dia: h.dia, horaInicio: h.horaInicio, horaFin: h.horaFin }))
+      : [{ dia: 'Lunes', horaInicio: '08:00', horaFin: '10:00' }],
   };
 }
 
@@ -56,7 +63,9 @@ function mapTutoriaUpdateToBackendDto(input: Partial<Tutoria>): Record<string, u
   if (input.subject !== undefined) dto.docente = input.subject;
   if (input.location !== undefined) dto.oficina = input.location;
   if (input.description !== undefined || input.title !== undefined) dto.informacion = input.description ?? input.title;
-  if (input.time !== undefined) dto.horarios = [{ dia: 'Lunes', horaInicio: input.time.slice(0, 5), horaFin: '10:00' }];
+  if (input.horarios !== undefined) {
+    dto.horarios = input.horarios.map((h) => ({ dia: h.dia, horaInicio: h.horaInicio, horaFin: h.horaFin }));
+  }
   return dto;
 }
 
