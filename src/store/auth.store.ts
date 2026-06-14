@@ -64,6 +64,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   gpsPermissionGranted: false,
   gpsPermissionDenied: false,
 
+  unsubscribeAuth: null,
+
   setSession: (user: User | null, token: string | null) => {
     set({ user, token, isSessionValid: !!user && !!token });
   },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,9 +9,22 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import type { ManagedUser, ManagedUserRole } from '@/features/admin/domain/user-management.entity';
 import { RoleDropdown } from './role-dropdown';
 import { DarkTheme as T, Shadows } from '@/constants/design-system';
+
+const editUserSchema = z.object({
+  nombre: z.string().min(2, 'Mínimo 2 caracteres').max(60, 'Máximo 60 caracteres'),
+  apellido: z.string().max(60, 'Máximo 60 caracteres').optional().or(z.literal('')),
+  email: z.string().min(1, 'El correo es requerido').email('Formato de correo inválido'),
+  telefono: z.string().regex(/^[0-9]{0,10}$/, 'Máximo 10 dígitos').optional().or(z.literal('')),
+  direccion: z.string().max(120, 'Máximo 120 caracteres').optional().or(z.literal('')),
+});
+
+type EditUserForm = z.infer<typeof editUserSchema>;
 
 interface UserEditModalProps {
   visible: boolean;
@@ -22,35 +35,50 @@ interface UserEditModalProps {
 }
 
 export function UserEditModal({ visible, user, isLoading, onSave, onClose }: UserEditModalProps) {
-  const [nombre, setNombre] = useState('');
-  const [apellido, setApellido] = useState('');
-  const [email, setEmail] = useState('');
-  const [telefono, setTelefono] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [role, setRole] = useState<ManagedUserRole>('estudiante');
+  const [role, setRole] = React.useState<ManagedUserRole>('estudiante');
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<EditUserForm>({
+    resolver: zodResolver(editUserSchema),
+    defaultValues: {
+      nombre: '',
+      apellido: '',
+      email: '',
+      telefono: '',
+      direccion: '',
+    },
+  });
 
   useEffect(() => {
     if (user) {
-      setNombre(user.nombre);
-      setApellido(user.apellido ?? '');
-      setEmail(user.email);
-      setTelefono(user.telefono ?? '');
-      setDireccion(user.direccion ?? '');
+      reset({
+        nombre: user.nombre,
+        apellido: user.apellido ?? '',
+        email: user.email,
+        telefono: user.telefono ?? '',
+        direccion: user.direccion ?? '',
+      });
       setRole(user.rol);
     }
-  }, [user]);
+  }, [user, reset]);
 
   if (!user) return null;
 
-  const handleSave = () => {
-    onSave(user, {
-      nombre: nombre.trim(),
-      apellido: apellido.trim() || undefined,
-      email: email.trim(),
-      telefono: telefono.trim() || undefined,
-      direccion: direccion.trim() || undefined,
-      rol: role,
-    });
+  const handleSave = (data: EditUserForm) => {
+    if (!errors.nombre && !errors.email && !errors.telefono) {
+      onSave(user, {
+        nombre: data.nombre.trim(),
+        apellido: data.apellido.trim() || undefined,
+        email: data.email.trim(),
+        telefono: data.telefono.trim() || undefined,
+        direccion: data.direccion.trim() || undefined,
+        rol: role,
+      });
+    }
   };
 
   return (
@@ -61,7 +89,7 @@ export function UserEditModal({ visible, user, isLoading, onSave, onClose }: Use
             <Text style={styles.cancelText}>Cancelar</Text>
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Editar usuario</Text>
-          <TouchableOpacity onPress={handleSave} disabled={isLoading} activeOpacity={0.7}>
+          <TouchableOpacity onPress={handleSubmit(handleSave)} disabled={isLoading} activeOpacity={0.7}>
             <Text style={styles.saveText}>{isLoading ? '...' : 'Guardar'}</Text>
           </TouchableOpacity>
         </View>
@@ -73,59 +101,99 @@ export function UserEditModal({ visible, user, isLoading, onSave, onClose }: Use
 
           <View style={styles.field}>
             <Text style={styles.label}>Nombre</Text>
-            <RNTextInput
-              style={styles.input}
-              value={nombre}
-              onChangeText={setNombre}
-              placeholder="Nombre"
-              placeholderTextColor={T.inputPlaceholder}
+            <Controller
+              control={control}
+              name="nombre"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <RNTextInput
+                  style={[styles.input, errors.nombre && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="Nombre"
+                  placeholderTextColor={T.inputPlaceholder}
+                />
+              )}
             />
+            {errors.nombre && <Text style={styles.errorText}>{errors.nombre.message}</Text>}
           </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Apellido</Text>
-            <RNTextInput
-              style={styles.input}
-              value={apellido}
-              onChangeText={setApellido}
-              placeholder="Apellido"
-              placeholderTextColor={T.inputPlaceholder}
+            <Controller
+              control={control}
+              name="apellido"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <RNTextInput
+                  style={[styles.input, errors.apellido && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="Apellido"
+                  placeholderTextColor={T.inputPlaceholder}
+                />
+              )}
             />
+            {errors.apellido && <Text style={styles.errorText}>{errors.apellido.message}</Text>}
           </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Correo</Text>
-            <RNTextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="correo@ejemplo.com"
-              keyboardType="email-address"
-              placeholderTextColor={T.inputPlaceholder}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <RNTextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="correo@ejemplo.com"
+                  keyboardType="email-address"
+                  placeholderTextColor={T.inputPlaceholder}
+                />
+              )}
             />
+            {errors.email && <Text style={styles.errorText}>{errors.email.message}</Text>}
           </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Teléfono</Text>
-            <RNTextInput
-              style={styles.input}
-              value={telefono}
-              onChangeText={setTelefono}
-              placeholder="0991234567"
-              keyboardType="phone-pad"
-              placeholderTextColor={T.inputPlaceholder}
+            <Controller
+              control={control}
+              name="telefono"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <RNTextInput
+                  style={[styles.input, errors.telefono && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="0991234567"
+                  keyboardType="phone-pad"
+                  placeholderTextColor={T.inputPlaceholder}
+                />
+              )}
             />
+            {errors.telefono && <Text style={styles.errorText}>{errors.telefono.message}</Text>}
           </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Dirección</Text>
-            <RNTextInput
-              style={styles.input}
-              value={direccion}
-              onChangeText={setDireccion}
-              placeholder="Dirección"
-              placeholderTextColor={T.inputPlaceholder}
+            <Controller
+              control={control}
+              name="direccion"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <RNTextInput
+                  style={[styles.input, errors.direccion && styles.inputError]}
+                  value={value}
+                  onChangeText={onChange}
+                  onBlur={onBlur}
+                  placeholder="Dirección"
+                  placeholderTextColor={T.inputPlaceholder}
+                />
+              )}
             />
+            {errors.direccion && <Text style={styles.errorText}>{errors.direccion.message}</Text>}
           </View>
 
           <View style={styles.field}>
@@ -192,5 +260,12 @@ const styles = StyleSheet.create({
     color: T.textPrimary,
     borderWidth: 1,
     borderColor: T.cardBorder,
+  },
+  inputError: {
+    borderColor: T.error,
+  },
+  errorText: {
+    color: T.error,
+    fontSize: 12,
   },
 });

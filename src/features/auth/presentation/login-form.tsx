@@ -53,7 +53,6 @@ export function LoginForm() {
   const loginAdmin = useExpressAuthStore((s) => s.loginAdmin);
   const [err, setErr] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
-  const [remember, setRemember] = useState(false);
   const [selectedRole, setSelectedRole] = useState<LoginRole>("estudiante");
 
   const {
@@ -208,13 +207,6 @@ export function LoginForm() {
         <Text style={s.fieldErr}>{errors.password.message}</Text>
       )}
 
-      <Pressable style={s.remember} onPress={() => setRemember(!remember)}>
-        <View style={[s.check, remember && s.checkOn]}>
-          {remember && <Text style={s.checkMark}>✓</Text>}
-        </View>
-        <Text style={s.rememberText}>Mantener sesión iniciada</Text>
-      </Pressable>
-
       <GlassButton
         title="Iniciar sesión"
         onPress={handleSubmit(onSubmit)}
@@ -248,17 +240,4 @@ const s = StyleSheet.create({
   },
   errText: { color: T.error, fontSize: 13 },
   fieldErr: { color: T.error, fontSize: 11, marginTop: -12 },
-  remember: { flexDirection: "row", alignItems: "center", gap: 10 },
-  check: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.5,
-    borderColor: T.inputBorder,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  checkOn: { backgroundColor: T.primary, borderColor: T.primary },
-  checkMark: { color: T.text, fontSize: 12, fontWeight: "700" },
-  rememberText: { fontSize: 13, color: T.textSecondary },
 });

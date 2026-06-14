@@ -9,6 +9,7 @@
 
 import { HttpClient } from '@/services/express/http-client';
 import { env } from '@/core/config/env';
+import { useAuthStore } from '@/store/auth.store';
 
 export const httpClient = new HttpClient({
   baseURL: env.EXPO_PUBLIC_API_BASE_URL,
@@ -16,6 +17,10 @@ export const httpClient = new HttpClient({
   tokenKey: 'esfotgo_jwt_token',
   refreshTokenKey: 'esfotgo_jwt_refresh',
   refreshEndpoint: '/auth/refresh',
+  onUnauthorized: () => {
+    const { secureLogout } = useAuthStore.getState();
+    secureLogout();
+  },
 });
 
 export type { ApiResponse } from '@/services/express/http-client';

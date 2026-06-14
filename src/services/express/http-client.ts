@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { env } from '@/core/config/env';
+import { useAuthStore } from '@/store/auth.store';
 
 // ─── Tipos ───────────────────────────────────────────────────
 
@@ -222,7 +223,7 @@ export const httpClient = new HttpClient({
   refreshTokenKey: 'esfotgo_jwt_refresh',
   refreshEndpoint: '/auth/refresh',
   onUnauthorized: () => {
-    // Callback cuando el refresh falla — el store de auth debe reaccionar
-    console.warn('Sesión expirada — redirigiendo a login');
+    const { secureLogout } = useAuthStore.getState();
+    secureLogout();
   },
 });
