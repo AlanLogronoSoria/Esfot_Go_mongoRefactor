@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const PRODUCTION_API_URL = 'https://esfotgo-componente-backend.vercel.app/api';
+const PRODUCTION_API_URL = 'https://esfotgocomponentebackend-production.up.railway.app/api';
 
 const envSchema = z.object({
   EXPO_PUBLIC_DEV_MODE: z.string().optional().default('false'),

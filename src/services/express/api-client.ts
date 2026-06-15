@@ -2,6 +2,8 @@ import { env } from '@/core/config/env';
 
 const BASE_URL = env.EXPO_PUBLIC_API_BASE_URL;
 
+console.log("BASE URL:", BASE_URL)
+
 interface RequestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   path: string;
