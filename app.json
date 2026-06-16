@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.epn.esfotgo"
+      "bundleIdentifier": "com.epn.esfotgo",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "ESFOTgo necesita tu ubicación para mostrarte el mapa del campus, rutas de Polibus y ayudarte a navegar."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,11 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.epn.esfotgo",
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",

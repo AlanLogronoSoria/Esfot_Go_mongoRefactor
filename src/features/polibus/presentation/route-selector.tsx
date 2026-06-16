@@ -42,7 +42,7 @@ function RouteCard({
         animStyle,
         isSelected && {
           borderColor: route.color,
-          backgroundColor: route.color + '12',
+          backgroundColor: (route.color.length > 7 ? route.color.slice(0, 7) : route.color) + '12',
           ...Shadows.md,
           shadowColor: route.color,
           shadowOpacity: 0.2,

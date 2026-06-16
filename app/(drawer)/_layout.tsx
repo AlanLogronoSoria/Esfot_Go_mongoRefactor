@@ -1,6 +1,6 @@
 import { Drawer } from 'expo-router/drawer';
 import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -81,7 +81,7 @@ function CustomDrawerContent() {
         </View>
       </View>
 
-      <View style={styles.items}>
+      <ScrollView style={styles.itemsScroll} contentContainerStyle={styles.itemsContent}>
         {items.map((item) => (
           <Pressable
             key={item.label}
@@ -100,7 +100,7 @@ function CustomDrawerContent() {
             <Text style={styles.itemLabel}>{item.label}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       <Pressable
         style={({ pressed }) => [
@@ -210,9 +210,11 @@ const styles = StyleSheet.create({
     color: T.primary,
     textTransform: 'capitalize',
   },
-  items: {
-    paddingVertical: Sizes.gapSm,
+  itemsScroll: {
     flex: 1,
+  },
+  itemsContent: {
+    paddingVertical: Sizes.gapSm,
   },
   item: {
     flexDirection: 'row', alignItems: 'center',

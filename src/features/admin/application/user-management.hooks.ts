@@ -97,7 +97,31 @@ export function useManagedUsers() {
         if (res.error) throw new Error(res.error);
       }
     },
-    onSuccess: () => {
+    onMutate: async ({ user, updates }) => {
+      await queryClient.cancelQueries({ queryKey: ['admin', 'users'] });
+      const previousData = queryClient.getQueriesData({ queryKey: ['admin', 'users'] });
+      queryClient.setQueriesData({ queryKey: ['admin', 'users'] }, (old: any) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page: any) => ({
+            ...page,
+            data: page.data?.map((u: ManagedUser) =>
+              u._id === user._id ? { ...u, ...updates } : u
+            ),
+          })),
+        };
+      });
+      return { previousData };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousData) {
+        context.previousData.forEach(([key, data]: any) => {
+          queryClient.setQueryData(key, data);
+        });
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
   });
