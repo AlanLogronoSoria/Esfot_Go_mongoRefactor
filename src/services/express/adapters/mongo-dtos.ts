@@ -151,6 +151,10 @@ export interface ZoneDto {
   strokeColor?: string;
   activo?: boolean;
   isActive?: boolean;
+  tipo_restriccion?: string;
+  restrictionType?: string;
+  horario_activo?: string;
+  activeSchedule?: string;
   created_at?: string;
   createdAt?: string;
   updated_at?: string;
@@ -164,6 +168,8 @@ export interface CreateZoneRequestDto {
   fill_color: string;
   stroke_color: string;
   activo: boolean;
+  tipo_restriccion: string;
+  horario_activo?: string;
 }
 
 // ─── Bus Routes ──────────────────────────────────────────────
@@ -178,6 +184,12 @@ export interface BusRouteDto {
   color?: string;
   activo?: boolean;
   isActive?: boolean;
+  tiempo_estimado?: number;
+  estimatedTime?: number;
+  distancia?: number;
+  distance?: number;
+  direccion?: string;
+  direction?: string;
   created_at?: string;
   createdAt?: string;
 }
@@ -187,6 +199,9 @@ export interface CreateBusRouteRequestDto {
   descripcion?: string;
   color: string;
   activo: boolean;
+  tiempo_estimado?: number;
+  distancia?: number;
+  direccion?: string;
 }
 
 // ─── Bus Stops ───────────────────────────────────────────────
@@ -277,6 +292,27 @@ export interface AulaDto {
   updatedAt?: string;
 }
 
+// ─── Edificios ───────────────────────────────────────────────
+
+export interface EdificioDto {
+  _id?: string;
+  id?: string;
+  nombre?: string;
+  name?: string;
+  descripcion?: string;
+  description?: string;
+  latitud?: number;
+  latitude?: number;
+  longitud?: number;
+  longitude?: number;
+  pisos?: number;
+  floors?: number;
+  imagen?: string;
+  image?: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
 // ─── Oficinas ────────────────────────────────────────────────
 
 export interface OficinaDto {
@@ -322,4 +358,39 @@ export interface ManagedUserDto {
   status?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+// ─── Favorites ──────────────────────────────────────────────
+
+export interface FavoriteDto {
+  _id?: string;
+  id?: string;
+  item_id?: string;
+  itemId?: string;
+  item_tipo?: string;
+  itemType?: string;
+  item_nombre?: string;
+  itemName?: string;
+  item_data?: Record<string, unknown>;
+  itemData?: Record<string, unknown>;
+  created_at?: string;
+  createdAt?: string;
+}
+
+// ─── Chat Messages ──────────────────────────────────────────
+
+export interface ChatMessageDto {
+  _id?: string;
+  id?: string;
+  sender?: string;
+  nombre?: string;
+  from?: string;
+  content?: string;
+  text?: string;
+  mensaje?: string;
+  timestamp?: string;
+  created_at?: string;
+  createdAt?: string;
+  room?: string;
+  sala?: string;
 }

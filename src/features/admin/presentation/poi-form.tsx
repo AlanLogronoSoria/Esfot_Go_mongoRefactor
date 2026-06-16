@@ -39,6 +39,16 @@ export function PoiForm({
     const lat: number = editingPoi?.latitude ?? initialCoordinate?.latitude ?? 0;
     const lng: number = editingPoi?.longitude ?? initialCoordinate?.longitude ?? 0;
 
+    if (lat === 0 && lng === 0) {
+      console.log('[PoiForm] Coordenadas invalidas (0,0) — no se puede crear la ubicacion');
+      return;
+    }
+
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      console.log(`[PoiForm] Coordenadas fuera de rango: (${lat}, ${lng})`);
+      return;
+    }
+
     if (isEditing && editingPoi) {
       onUpdate(editingPoi.id, {
         name: name.trim(),

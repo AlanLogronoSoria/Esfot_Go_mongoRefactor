@@ -7,7 +7,7 @@
 import type {
   UserDto, EventDto, LocationDto, ZoneDto,
   BusRouteDto, BusStopDto, BusLocationDto,
-  GraphNodeDto, GraphEdgeDto,
+  GraphNodeDto, GraphEdgeDto, FavoriteDto,
 } from './mongo-dtos';
 import type { User, Role } from '@/core/types';
 import type { Event, EventCategory } from '@/features/events/domain/event.entity';
@@ -15,6 +15,9 @@ import type { CampusLocation } from '@/features/map/domain/location.entity';
 import type { RestrictedZone } from '@/features/admin/domain/poi.entity';
 import type { BusRoute, BusStop, BusLocation } from '@/features/polibus/domain/route.entity';
 import type { GraphNode, GraphEdge } from '@/features/graph/domain/graph.entity';
+import type { Favorite } from '@/features/favoritos/domain/favorite.entity';
+import type { Edificio } from '@/features/edificios/domain/edificio.entity';
+import type { AulaDto, EdificioDto, ChatMessageDto } from './mongo-dtos';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -102,6 +105,8 @@ export function mapZoneDtoToZone(dto: ZoneDto): RestrictedZone {
     fillColor: dto.fill_color ?? dto.fillColor ?? 'rgba(200,16,46,0.2)',
     strokeColor: dto.stroke_color ?? dto.strokeColor ?? '#C8102E',
     isActive: dto.activo ?? dto.isActive ?? true,
+    restrictionType: (dto.tipo_restriccion ?? dto.restrictionType ?? 'otro') as RestrictedZone['restrictionType'],
+    activeSchedule: dto.horario_activo ?? dto.activeSchedule ?? null,
     createdAt: dto.created_at ?? dto.createdAt ?? '',
     updatedAt: dto.updated_at ?? dto.updatedAt ?? '',
   };
@@ -116,6 +121,9 @@ export function mapBusRouteDtoToBusRoute(dto: BusRouteDto): BusRoute {
     description: dto.descripcion ?? dto.description ?? null,
     color: dto.color ?? '#1B6BB0',
     isActive: dto.activo ?? dto.isActive ?? true,
+    estimatedTime: dto.tiempo_estimado ?? dto.estimatedTime ?? null,
+    distance: dto.distancia ?? dto.distance ?? null,
+    direction: dto.direccion ?? dto.direction ?? null,
     createdAt: normalizeDate(dto.created_at ?? dto.createdAt),
   };
 }
@@ -169,5 +177,81 @@ export function mapGraphEdgeDtoToGraphEdge(dto: GraphEdgeDto): GraphEdge {
     weight: dto.weight ?? dto.peso ?? 1,
     blocked: dto.blocked ?? dto.bloqueado ?? false,
     bidirectional: dto.bidirectional ?? dto.bidireccional ?? true,
+  };
+}
+
+// ─── Favorite ────────────────────────────────────────────────
+
+export function mapFavoriteDtoToFavorite(dto: FavoriteDto): Favorite {
+  return {
+    id: extractId(dto),
+    itemId: dto.item_id ?? dto.itemId ?? '',
+    itemType: (dto.item_tipo ?? dto.itemType ?? 'ubicacion') as Favorite['itemType'],
+    itemName: dto.item_nombre ?? dto.itemName ?? '',
+    itemData: dto.item_data ?? dto.itemData ?? {},
+    createdAt: normalizeDate(dto.created_at ?? dto.createdAt),
+  };
+}
+
+// ─── Edificio ────────────────────────────────────────────────
+
+export function mapEdificioDtoToEdificio(dto: EdificioDto): Edificio {
+  return {
+    id: extractId(dto),
+    nombre: dto.nombre ?? dto.name ?? '',
+    descripcion: dto.descripcion ?? dto.description ?? null,
+    latitud: normalizeCoord(dto.latitud ?? dto.latitude) || null,
+    longitud: normalizeCoord(dto.longitud ?? dto.longitude) || null,
+    pisos: dto.pisos ?? dto.floors ?? null,
+    imagen: dto.imagen ?? dto.image ?? null,
+    createdAt: normalizeDate(dto.created_at ?? dto.createdAt),
+  };
+}
+
+// ─── Aula (normalized) ───────────────────────────────────────
+
+export interface Aula {
+  id: string;
+  nombre: string;
+  capacidad: number | null;
+  ubicacion: string | null;
+  estado: string | null;
+  edificioId: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export function mapAulaDtoToAula(dto: AulaDto): Aula {
+  return {
+    id: extractId(dto),
+    nombre: dto.nombre ?? '',
+    capacidad: dto.capacidad ?? null,
+    ubicacion: dto.ubicacion ?? null,
+    estado: dto.estado ?? null,
+    edificioId: (dto as unknown as Record<string, unknown>).edificio_id as string ?? null,
+    createdAt: dto.createdAt ?? null,
+    updatedAt: dto.updatedAt ?? null,
+  };
+}
+
+// ─── Chat Message ───────────────────────────────────────────
+
+export interface ChatMessageEntity {
+  id: string;
+  sender: string;
+  senderName: string;
+  content: string;
+  timestamp: string;
+  room: string;
+}
+
+export function mapChatMessageDtoToEntity(dto: ChatMessageDto): ChatMessageEntity {
+  return {
+    id: extractId(dto),
+    sender: dto.sender ?? '',
+    senderName: dto.nombre ?? dto.from ?? '',
+    content: dto.content ?? dto.text ?? dto.mensaje ?? '',
+    timestamp: dto.timestamp ?? dto.created_at ?? dto.createdAt ?? new Date().toISOString(),
+    room: dto.room ?? dto.sala ?? 'general',
   };
 }

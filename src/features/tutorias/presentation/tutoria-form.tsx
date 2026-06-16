@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useState } from 'react';
 import * as Haptics from 'expo-haptics';
 import { X } from 'lucide-react-native';
-import type { Tutoria, Horario } from '../domain/tutoria.entity';
+import type { Tutoria, Horario, TutoriaStatus } from '../domain/tutoria.entity';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
@@ -18,6 +18,7 @@ const tutoriaSchema = z.object({
   duration: z.string().min(1, 'Duración requerida'),
   maxStudents: z.string().min(1, 'Cupo requerido'),
   location: z.string().max(100).optional().or(z.literal('')),
+  status: z.enum(['programada', 'pendiente', 'finalizada', 'cancelada']),
 });
 
 type TutoriaFormInput = z.infer<typeof tutoriaSchema>;
@@ -51,6 +52,7 @@ export function TutoriaForm({ editData, onSubmit, isLoading }: TutoriaFormProps)
       duration: String(editData?.duration ?? 60),
       location: editData?.location ?? '',
       maxStudents: String(editData?.maxStudents ?? 20),
+      status: (editData?.status as TutoriaStatus) ?? 'programada',
     },
   });
 
@@ -82,7 +84,7 @@ export function TutoriaForm({ editData, onSubmit, isLoading }: TutoriaFormProps)
       location: data.location || undefined,
       maxStudents: parseInt(data.maxStudents, 10) || 20,
       horarios: horarios.filter((h) => h.dia && h.horaInicio && h.horaFin),
-      status: editData?.status ?? 'programada',
+      status: data.status,
       createdBy: editData?.createdBy ?? '',
     });
   };

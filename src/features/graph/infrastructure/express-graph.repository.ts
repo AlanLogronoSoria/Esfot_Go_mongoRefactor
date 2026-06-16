@@ -5,6 +5,7 @@ import type { IGraphRepository } from '../domain/graph.repository';
 import type { CampusGraph, GraphEdge, GraphNode } from '../domain/graph.entity';
 import { MockData } from '@/core/dev/mock-services';
 import { isDevMode } from '@/core/config/env';
+import { logGraphStats } from '../domain/graph-integrity';
 
 const AUTH_TOKEN_KEY = 'esfotgo_jwt_token';
 
@@ -61,20 +62,29 @@ export class ExpressGraphRepository implements IGraphRepository {
       httpClient.get<GraphNodeDto[]>('/mapa/grafo/nodos'),
       httpClient.get<GraphEdgeDto[]>('/mapa/grafo/aristas'),
     ]);
-    if (nodesRes.error || edgesRes.error) return { nodes: [], edges: [] };
-    return {
+    if (nodesRes.error || edgesRes.error) {
+      console.log('[ExpressGraphRepo] Error cargando grafo:', nodesRes.error ?? edgesRes.error);
+      return { nodes: [], edges: [] };
+    }
+    const graph = {
       nodes: (nodesRes.data ?? []).map(mapDtoToNode),
       edges: (edgesRes.data ?? []).map(mapDtoToEdge),
     };
+    logGraphStats(graph);
+    return graph;
   }
 
   async upsertNode(node: Omit<GraphNode, 'id'> & { id?: string }): Promise<GraphNode> {
     if (isDevMode()) return { ...node, id: node.id ?? `mock-${Date.now()}` };
     const t = await this.token();
+    console.log('[ExpressGraphRepo] Upsert nodo:', node.label, node.id ? `(id: ${node.id})` : '(nuevo)');
     const payload: Record<string, unknown> = { label: node.label, latitude: node.latitude, longitude: node.longitude };
     if (node.id) payload._id = node.id;
     const { data, error } = await httpClient.post<GraphNodeDto>('/admin/mapa/grafo/nodos', payload, t);
-    if (error || !data) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
+    if (error || !data) {
+      console.log('[ExpressGraphRepo] Error upsert nodo:', error);
+      throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
+    }
     return mapDtoToNode(data);
   }
 
@@ -88,13 +98,17 @@ export class ExpressGraphRepository implements IGraphRepository {
   async upsertEdge(edge: Omit<GraphEdge, 'id'> & { id?: string }): Promise<GraphEdge> {
     if (isDevMode()) return { ...edge, id: edge.id ?? `mock-${Date.now()}` };
     const t = await this.token();
+    console.log('[ExpressGraphRepo] Upsert arista:', edge.fromNodeId, '→', edge.toNodeId, `(${edge.weight}m)`);
     const payload: Record<string, unknown> = {
       from_node_id: edge.fromNodeId, to_node_id: edge.toNodeId,
       weight: edge.weight, blocked: edge.blocked, bidirectional: edge.bidirectional,
     };
     if (edge.id) payload._id = edge.id;
     const { data, error } = await httpClient.post<GraphEdgeDto>('/admin/mapa/grafo/aristas', payload, t);
-    if (error || !data) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
+    if (error || !data) {
+      console.log('[ExpressGraphRepo] Error upsert arista:', error);
+      throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
+    }
     return mapDtoToEdge(data);
   }
 

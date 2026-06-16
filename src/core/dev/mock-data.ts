@@ -102,8 +102,8 @@ export const MOCK_CAMPUS_LOCATIONS: CampusLocation[] = [
 ];
 
 export const MOCK_BUS_ROUTES: BusRoute[] = [
-  { id: 'route-1', name: 'Ruta Campus - Norte', description: 'Recorrido desde la entrada principal hasta el norte del campus', color: '#1B6BB0', isActive: true, createdAt: now },
-  { id: 'route-2', name: 'Ruta Campus - Sur', description: 'Recorrido circular por el sur del campus', color: '#059669', isActive: true, createdAt: now },
+  { id: 'route-1', name: 'Ruta Campus - Norte', description: 'Recorrido desde la entrada principal hasta el norte del campus', color: '#1B6BB0', isActive: true, estimatedTime: 12, distance: 1400, direction: 'Sur → Norte', createdAt: now },
+  { id: 'route-2', name: 'Ruta Campus - Sur', description: 'Recorrido circular por el sur del campus', color: '#059669', isActive: true, estimatedTime: 18, distance: 2200, direction: 'Circular', createdAt: now },
 ];
 
 export const MOCK_BUS_STOPS: Record<string, BusStop[]> = {

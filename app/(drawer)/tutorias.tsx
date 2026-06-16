@@ -15,11 +15,12 @@ import { EmptyState } from '@/components/ui/empty-state';
 const STATUS_CHIPS: { key: Tutoria['status'] | 'todas'; label: string }[] = [
   { key: 'todas', label: 'Todas' },
   { key: 'programada', label: 'Programadas' },
+  { key: 'pendiente', label: 'Pendientes' },
   { key: 'finalizada', label: 'Finalizadas' },
   { key: 'cancelada', label: 'Canceladas' },
 ];
 
-const STATUS_COLORS: Record<Tutoria['status'], string> = { programada: '#1B6BB0', en_curso: '#059669', finalizada: '#6B7280', cancelada: '#DC2626' };
+const STATUS_COLORS: Record<Tutoria['status'], string> = { programada: '#1B6BB0', pendiente: '#059669', finalizada: '#6B7280', cancelada: '#DC2626' };
 
 export default function TutoriasScreen() {
   const user = useAuthStore((s) => s.user);

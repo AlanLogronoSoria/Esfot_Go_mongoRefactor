@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const PRODUCTION_API_URL =
-  "https://daring-serenity-production.up.railway.app/api";
+  "https://esfotgocomponentebackend-production.up.railway.app/api";
 
 const envSchema = z.object({
   EXPO_PUBLIC_DEV_MODE: z.string().optional().default("false"),

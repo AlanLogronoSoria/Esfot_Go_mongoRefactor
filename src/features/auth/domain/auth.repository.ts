@@ -21,4 +21,5 @@ export interface IAuthRepository {
   resetPassword(token: string, password: string, confirmPassword: string): Promise<void>;
   refreshSession(): Promise<{ user: User; token: string } | null>;
   subscribeToAuthChanges(callback: (session: { user: User; token: string } | null) => void): () => void;
+  lookupInstitutionalUser(email: string, role: 'estudiante' | 'docente'): Promise<{ nombre: string; apellido: string } | null>;
 }

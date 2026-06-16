@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TextInput, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { Search } from 'lucide-react-native';
 import { ChatUserCard } from './chat-user-card';
@@ -32,8 +32,9 @@ export function PrivateChatList({ onSelectUser }: PrivateChatListProps) {
     try {
       const conv = await getConversation(user._id);
       onSelectUser(conv._id, `${user.nombre} ${user.apellido ?? ''}`.trim());
-    } catch {
-      // Silently handle — user will retry
+    } catch (err) {
+      console.log('[PrivateChatList] Error al iniciar conversacion:', (err as Error)?.message);
+      Alert.alert('Error', 'No se pudo iniciar la conversación. Verifica tu conexión.');
     }
   };
 

@@ -18,6 +18,8 @@ export interface PoiUpdateInput {
   imageUrl?: string;
 }
 
+export type ZoneRestrictionType = 'acceso_restringido' | 'construccion' | 'peatonal' | 'emergencia' | 'ambiental' | 'seguridad' | 'otro';
+
 export interface RestrictedZone {
   id: string;
   name: string;
@@ -26,6 +28,8 @@ export interface RestrictedZone {
   fillColor: string;
   strokeColor: string;
   isActive: boolean;
+  restrictionType: ZoneRestrictionType;
+  activeSchedule: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -35,8 +35,9 @@ export function useRouteStops(routeId: string) {
     queryFn: async () => {
       if (isDevMode()) return MockData.getBusStops(routeId);
       const stops = await repository.getRouteStops(routeId);
-      console.log(`[useRouteStops] Ruta ${routeId}: ${stops.length} paradas`);
-      return stops;
+      const sorted = [...stops].sort((a, b) => (a.stopOrder ?? 0) - (b.stopOrder ?? 0));
+      console.log(`[useRouteStops] Ruta ${routeId}: ${sorted.length} paradas (ordenadas por stopOrder)`);
+      return sorted;
     },
     enabled: !!routeId,
     staleTime: 1000 * 60 * 10,
@@ -88,7 +89,26 @@ export function useOptimizedRoutePolyline(stops: BusStop[] | undefined) {
   return useMemo(() => {
     if (!stops || stops.length < 2) return null;
 
-    const points: GeoCoordinate[] = stops.map((s) => ({
+    const sorted = [...stops].sort((a, b) => (a.stopOrder ?? 0) - (b.stopOrder ?? 0));
+
+    const validStops = sorted.filter((s) => {
+      const latOk = s.latitude >= -90 && s.latitude <= 90 && s.latitude !== 0;
+      const lngOk = s.longitude >= -180 && s.longitude <= 180;
+      if (!latOk || !lngOk) {
+        console.log(`[useOptimizedRoutePolyline] Coordenada invalida en parada "${s.name}": (${s.latitude}, ${s.longitude}) — omitiendo`);
+        return false;
+      }
+      return true;
+    });
+
+    if (validStops.length < 2) {
+      console.log('[useOptimizedRoutePolyline] No hay suficientes paradas con coordenadas validas');
+      return null;
+    }
+
+    console.log(`[useOptimizedRoutePolyline] ${validStops.length} paradas validas (de ${stops.length} totales), ordenadas por stopOrder`);
+
+    const points: GeoCoordinate[] = validStops.map((s) => ({
       latitude: s.latitude,
       longitude: s.longitude,
     }));

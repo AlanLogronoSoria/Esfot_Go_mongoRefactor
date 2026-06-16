@@ -221,6 +221,19 @@ export class ExpressAuthRepository implements IAuthRepository {
     if (error) throw new AuthError(error);
   }
 
+  async lookupInstitutionalUser(email: string, role: 'estudiante' | 'docente'): Promise<{ nombre: string; apellido: string } | null> {
+    try {
+      const endpoint = role === 'docente' ? '/buscarDocente' : '/buscarEstudiante';
+      const { data, error } = await httpClient.get<{ nombre: string; apellido: string }>(
+        `${endpoint}?email=${encodeURIComponent(email)}`
+      );
+      if (error || !data) return null;
+      return { nombre: data.nombre ?? '', apellido: data.apellido ?? '' };
+    } catch {
+      return null;
+    }
+  }
+
   async refreshSession(): Promise<{ user: User; token: string } | null> {
     try {
       const refreshToken = await SecureStore.getItemAsync(AUTH_REFRESH_KEY);

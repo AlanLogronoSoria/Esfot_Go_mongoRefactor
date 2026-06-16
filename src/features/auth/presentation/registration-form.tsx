@@ -39,6 +39,7 @@ import { AppError } from '@/core/errors/app-error';
 import * as Haptics from 'expo-haptics';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { Check } from 'lucide-react-native';
+import { useInstitutionalLookup } from '../application/institutional-lookup.hook';
 
 type Step = 1 | 2 | 3;
 type RegisterRole = 'estudiante' | 'docente';
@@ -74,6 +75,10 @@ export function RegistrationForm() {
 
   const [emailValue, setEmailValue] = useState('');
   const [passwordValue, setPasswordValue] = useState('');
+  const [prefillNombre, setPrefillNombre] = useState('');
+  const [prefillApellido, setPrefillApellido] = useState('');
+
+  const { lookup } = useInstitutionalLookup();
 
   const progressWidth = useSharedValue(0);
   const stepOpacity = useSharedValue(1);
@@ -178,6 +183,14 @@ export function RegistrationForm() {
             onValid={(email) => {
               setEmailValue(email);
               goNext();
+              lookup(email, selectedRole)
+                .then((result) => {
+                  if (result) {
+                    setPrefillNombre(result.nombre);
+                    setPrefillApellido(result.apellido);
+                  }
+                })
+                .catch(() => {});
             }}
           />
         )}
@@ -194,6 +207,8 @@ export function RegistrationForm() {
         {step === 3 && (
           <Step3Profile
             isLoading={isLoading}
+            prefillNombre={prefillNombre}
+            prefillApellido={prefillApellido}
             onSubmit={async (data) => {
               setServerError(null);
               try {
@@ -439,20 +454,35 @@ function Step3Profile({
   isLoading,
   onSubmit,
   onBack,
+  prefillNombre = '',
+  prefillApellido = '',
 }: {
   isLoading: boolean;
   onSubmit: (data: Step3ProfileInput) => Promise<void>;
   onBack: () => void;
+  prefillNombre?: string;
+  prefillApellido?: string;
 }) {
   const {
     control,
     handleSubmit,
     formState: { errors },
+    reset,
   } = useForm<Step3ProfileInput>({
     resolver: zodResolver(step3ProfileSchema),
-    defaultValues: { nombre: '', apellido: '', telefono: '', acceptTerms: false },
+    defaultValues: { nombre: prefillNombre, apellido: prefillApellido, telefono: '', acceptTerms: false },
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    if (prefillNombre || prefillApellido) {
+      reset((formValues) => ({
+        ...formValues,
+        ...(prefillNombre && !formValues.nombre ? { nombre: prefillNombre } : {}),
+        ...(prefillApellido && !formValues.apellido ? { apellido: prefillApellido } : {}),
+      }));
+    }
+  }, [prefillNombre, prefillApellido, reset]);
 
   return (
     <View style={styles.stepForm}>

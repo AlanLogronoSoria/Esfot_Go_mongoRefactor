@@ -35,5 +35,9 @@ export const MemoPolyline = memo(
   (prev, next) =>
     prev.color === next.color &&
     prev.coordinates.length === next.coordinates.length &&
-    prev.coordinates[0]?.latitude === next.coordinates[0]?.latitude,
+    prev.coordinates.length > 0 &&
+    prev.coordinates[0]?.latitude === next.coordinates[0]?.latitude &&
+    prev.coordinates[0]?.longitude === next.coordinates[0]?.longitude &&
+    prev.coordinates[prev.coordinates.length - 1]?.latitude === next.coordinates[next.coordinates.length - 1]?.latitude &&
+    prev.coordinates[prev.coordinates.length - 1]?.longitude === next.coordinates[next.coordinates.length - 1]?.longitude,
 );

@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useState, useMemo } from 'react';
 import {
   View, StyleSheet, Pressable, Platform, Text, ActivityIndicator,
 } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline, Circle } from 'react-native-maps';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -51,6 +51,7 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const { location: userLocation, permissionStatus, retry, error: locationError } = useLocation();
   const battery = useBatteryOptimizer();
+  const initialCenteredRef = useRef(false);
 
   const [region, setRegion] = useState<MapRegion>(EPN_REGION);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
@@ -69,6 +70,18 @@ export default function MapScreen() {
   const { data: campusGraph, error: graphError } = useCampusGraph();
   const optimalGraphRoute = useOptimalRoute(campusGraph, fromNodeId, toNodeId);
   const { clusters } = useMapClusters(region, selectedCategory);
+
+  React.useEffect(() => {
+    if (userLocation && !initialCenteredRef.current && mapRef.current) {
+      initialCenteredRef.current = true;
+      mapRef.current.animateToRegion({
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      }, 800);
+    }
+  }, [userLocation]);
 
   if (graphError) console.log('[MapScreen] Error cargando grafo:', (graphError as Error)?.message ?? graphError);
 
@@ -176,14 +189,29 @@ export default function MapScreen() {
         initialRegion={EPN_REGION}
         region={region}
         onRegionChangeComplete={handleRegionChange}
-        showsUserLocation={false}
+        showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={false}
+        showsScale
         rotateEnabled={false}
         toolbarEnabled={false}
         pitchEnabled={false}
       >
-        {userLocation && <UserMarker location={userLocation} />}
+        {userLocation && (
+          <>
+            <Circle
+              center={{
+                latitude: userLocation.coords.latitude,
+                longitude: userLocation.coords.longitude,
+              }}
+              radius={userLocation.coords.accuracy ?? 10}
+              fillColor="rgba(0, 122, 255, 0.12)"
+              strokeColor="rgba(0, 122, 255, 0.35)"
+              strokeWidth={1.5}
+            />
+            <UserMarker location={userLocation} />
+          </>
+        )}
         {clusters.map((item) =>
           isClusterPoint(item) ? (
             <ClusterMarker

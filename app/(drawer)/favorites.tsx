@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable,
+  View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator,
 } from 'react-native';
 import Animated, {
   FadeInDown, useSharedValue, useAnimatedScrollHandler,
@@ -13,6 +13,8 @@ import { GlassHeader } from '@/components/ui/GlassHeader';
 import { BuildingCard, type Building } from '@/components/ui/BuildingCard';
 import { RouteCard, type Route } from '@/components/ui/RouteCard';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { useFavoritesByType, useRemoveFavorite } from '@/features/favoritos/application/favorite.hooks';
+import type { Favorite } from '@/features/favoritos/domain/favorite.entity';
 
 type FavTab = 'aulas' | 'edificios' | 'rutas' | 'ubicaciones';
 
@@ -23,134 +25,56 @@ const TABS: { key: FavTab; label: string; Icon: React.ComponentType<any> }[] = [
   { key: 'ubicaciones', label: 'Ubicaciones', Icon: CalendarDays },
 ];
 
-// ─── Mock data ───
-const MOCK_AULAS: Building[] = [
-  {
-    id: '1',
-    name: 'Aula 101 - Matemáticas',
-    code: 'A-101',
-    description: 'Laboratorio de computación con 40 equipos de última generación',
-    category: 'aula',
-    floor: 1,
-    capacity: 40,
-    isFavorite: true,
-  },
-  {
-    id: '2',
-    name: 'Aula 205 - Tecnología',
-    code: 'A-205',
-    description: 'Sala de clase equipada con proyector y sistema de audio',
-    category: 'aula',
-    floor: 2,
-    capacity: 35,
-    isFavorite: true,
-  },
-  {
-    id: '3',
-    name: 'Laboratorio de Redes',
-    code: 'L-304',
-    description: 'Laboratorio especializado en redes y telecomunicaciones',
-    category: 'laboratorio',
-    floor: 3,
-    capacity: 25,
-    isFavorite: true,
-  },
-];
+function favoriteToBuilding(f: Favorite): Building {
+  return {
+    id: f.itemId,
+    name: f.itemName,
+    ...f.itemData as Omit<Building, 'id' | 'name'>,
+  };
+}
 
-const MOCK_EDIFICIOS: Building[] = [
-  {
-    id: 'e1',
-    name: 'Edificio Principal ESFOT',
-    code: 'EP-01',
-    description: 'Edificio central con aulas, secretaría y dirección académica',
-    category: 'edificio',
-    isFavorite: true,
-  },
-  {
-    id: 'e2',
-    name: 'Bloque de Laboratorios',
-    code: 'BL-02',
-    description: 'Complejo de laboratorios de ingeniería y tecnología',
-    category: 'edificio',
-    isFavorite: true,
-  },
-];
-
-const MOCK_RUTAS: Route[] = [
-  {
-    id: 'r1',
-    name: 'Ruta al Edificio ESFOT',
-    origin: 'Mi ubicación',
-    destination: 'Edificio Principal ESFOT',
-    distanceMeters: 320,
-    estimatedMinutes: 4,
-    isActive: true,
-    color: '#042c5c',
-    icon: '🚶',
-  },
-  {
-    id: 'r2',
-    name: 'Ruta al Laboratorio',
-    origin: 'Entrada EPN',
-    destination: 'Bloque de Laboratorios',
-    distanceMeters: 580,
-    estimatedMinutes: 7,
-    isActive: true,
-    color: '#059669',
-    icon: '🗺️',
-  },
-];
-
-const MOCK_UBICACIONES: Building[] = [
-  {
-    id: 'u1',
-    name: 'Cafetería Central',
-    description: 'Área de alimentación principal del campus',
-    category: 'otro',
-    icon: '☕',
-    isFavorite: true,
-  },
-  {
-    id: 'u2',
-    name: 'Biblioteca EPN',
-    description: 'Centro de recursos bibliográficos y digitales',
-    category: 'otro',
-    icon: '📖',
-    isFavorite: true,
-  },
-];
+function favoriteToRoute(f: Favorite): Route {
+  return {
+    id: f.itemId,
+    name: f.itemName,
+    ...f.itemData as Omit<Route, 'id' | 'name'>,
+  };
+}
 
 export default function FavoritesScreen() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<FavTab>('aulas');
-  const [favorites, setFavorites] = useState({
-    aulas: MOCK_AULAS,
-    edificios: MOCK_EDIFICIOS,
-    rutas: MOCK_RUTAS,
-    ubicaciones: MOCK_UBICACIONES,
-  });
+  const { aulas, edificios, rutas, ubicaciones, total, isLoading, countByType } = useFavoritesByType();
+  const removeFavorite = useRemoveFavorite();
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
 
-  const totalFavs =
-    favorites.aulas.length +
-    favorites.edificios.length +
-    favorites.rutas.length +
-    favorites.ubicaciones.length;
+  const totalFavs = total;
 
-  const removeFavorite = useCallback((tab: FavTab, id: string) => {
-    setFavorites((prev) => ({
-      ...prev,
-      [tab]: (prev[tab] as any[]).filter((item: any) => item.id !== id),
-    }));
-  }, []);
+  const handleRemoveFavorite = useCallback((tab: FavTab, id: string) => {
+    const items =
+      tab === 'aulas' ? aulas :
+      tab === 'edificios' ? edificios :
+      tab === 'rutas' ? rutas : ubicaciones;
+    const fav = items.find((f) => f.itemId === id);
+    if (!fav) return;
+    removeFavorite.mutate(fav.id);
+  }, [aulas, edificios, rutas, ubicaciones, removeFavorite]);
 
   const renderContent = () => {
+    if (isLoading) {
+      return (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={T.primary} />
+        </View>
+      );
+    }
+
     if (activeTab === 'rutas') {
-      const routes = favorites.rutas;
+      const routes = rutas.map(favoriteToRoute);
       if (routes.length === 0) {
         return (
           <EmptyState
@@ -171,7 +95,7 @@ export default function FavoritesScreen() {
               route={route}
               isFavorite
               onPress={() => router.push('/map' as any)}
-              onFavoritePress={() => removeFavorite('rutas', route.id)}
+              onFavoritePress={() => handleRemoveFavorite('rutas', route.id)}
               animationDelay={i * 60}
             />
           ))}
@@ -180,11 +104,9 @@ export default function FavoritesScreen() {
     }
 
     const items =
-      activeTab === 'aulas'
-        ? favorites.aulas
-        : activeTab === 'edificios'
-        ? favorites.edificios
-        : favorites.ubicaciones;
+      activeTab === 'aulas' ? aulas.map(favoriteToBuilding) :
+      activeTab === 'edificios' ? edificios.map(favoriteToBuilding) :
+      ubicaciones.map(favoriteToBuilding);
 
     if (items.length === 0) {
       const config: Record<FavTab, { Icon: React.ComponentType<any>; title: string; subtitle: string; action: string }> = {
@@ -214,7 +136,7 @@ export default function FavoritesScreen() {
             building={item as Building}
             onPress={() => router.push('/map' as any)}
             onMapPress={() => router.push('/map' as any)}
-            onFavoritePress={() => removeFavorite(activeTab, item.id)}
+            onFavoritePress={() => handleRemoveFavorite(activeTab, item.id)}
             animationDelay={i * 60}
           />
         ))}
@@ -257,7 +179,7 @@ export default function FavoritesScreen() {
             contentContainerStyle={styles.tabs}
           >
             {TABS.map((tab) => {
-              const count = (favorites[tab.key] as any[]).length;
+              const count = countByType[tab.key];
               const isActive = activeTab === tab.key;
               return (
                 <Pressable
@@ -359,5 +281,12 @@ const styles = StyleSheet.create({
   list: {
     paddingHorizontal: Sizes.paddingMd,
     paddingTop: 4,
+  },
+
+  loadingWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 80,
   },
 });

@@ -24,7 +24,8 @@ export class ExpressBusRepository implements IBusRepository {
 
   async getAllRoutes(): Promise<BusRoute[]> {
     if (isDevMode()) return MockData.getBusRoutes();
-    const { data, error } = await httpClient.get<Record<string, unknown>[]>('/admin/bus/rutas');
+    const t = await this.token();
+    const { data, error } = await httpClient.get<Record<string, unknown>[]>('/admin/bus/rutas', t);
     if (error) return [];
     return (data ?? []).map((r) => mapBusRouteDtoToBusRoute(r as BusRouteDto));
   }
@@ -46,10 +47,20 @@ export class ExpressBusRepository implements IBusRepository {
   async createRoute(input: Omit<BusRoute, 'id' | 'createdAt'>): Promise<BusRoute> {
     if (isDevMode()) return { ...input, id: `mock-${Date.now()}`, createdAt: new Date().toISOString() };
     const t = await this.token();
+    console.log('[ExpressBusRepo] Creando ruta:', input.name);
     const { data, error } = await httpClient.post<Record<string, unknown>>('/admin/bus/rutas', {
-      nombre: input.name, descripcion: input.description, color: input.color, activo: input.isActive,
+      nombre: input.name,
+      descripcion: input.description,
+      color: input.color,
+      activo: input.isActive,
+      tiempo_estimado: input.estimatedTime,
+      distancia: input.distance,
+      direccion: input.direction,
     }, t);
-    if (error) throw mapSupabaseError(new Error(error));
+    if (error) {
+      console.log('[ExpressBusRepo] Error creando ruta:', error);
+      throw mapSupabaseError(new Error(error));
+    }
     return mapBusRouteDtoToBusRoute(data! as BusRouteDto);
   }
 
@@ -61,13 +72,20 @@ export class ExpressBusRepository implements IBusRepository {
       return { ...found, ...input, id: found.id, createdAt: found.createdAt };
     }
     const t = await this.token();
+    console.log('[ExpressBusRepo] Actualizando ruta:', id);
     const payload: Record<string, unknown> = {};
     if (input.name !== undefined) payload.nombre = input.name;
     if (input.description !== undefined) payload.descripcion = input.description;
     if (input.color !== undefined) payload.color = input.color;
     if (input.isActive !== undefined) payload.activo = input.isActive;
+    if (input.estimatedTime !== undefined) payload.tiempo_estimado = input.estimatedTime;
+    if (input.distance !== undefined) payload.distancia = input.distance;
+    if (input.direction !== undefined) payload.direccion = input.direction;
     const { data, error } = await httpClient.put<Record<string, unknown>>(`/admin/bus/rutas/${id}`, payload, t);
-    if (error) throw mapSupabaseError(new Error(error));
+    if (error) {
+      console.log('[ExpressBusRepo] Error actualizando ruta:', error);
+      throw mapSupabaseError(new Error(error));
+    }
     return mapBusRouteDtoToBusRoute(data! as BusRouteDto);
   }
 
@@ -77,14 +95,18 @@ export class ExpressBusRepository implements IBusRepository {
     const { error } = await httpClient.delete(`/admin/bus/rutas/${id}`, t);
     if (error) throw mapSupabaseError(new Error(error));
   }
-
   async createStop(input: Omit<BusStop, 'id' | 'createdAt'>): Promise<BusStop> {
     if (isDevMode()) return { ...input, id: `mock-${Date.now()}`, createdAt: new Date().toISOString() };
     const t = await this.token();
+    console.log('[ExpressBusRepo] Creando parada:', input.name, 'coords:', input.latitude, input.longitude);
     const { data, error } = await httpClient.post<Record<string, unknown>>(`/admin/bus/paradas`, {
-      ruta_id: input.routeId, nombre: input.name, latitud: input.latitude, longitud: input.longitude, orden: input.stopOrder,
+      ruta_id: input.routeId, nombre: input.name,
+      latitud: input.latitude, longitud: input.longitude, orden: input.stopOrder,
     }, t);
-    if (error) throw mapSupabaseError(new Error(error));
+    if (error) {
+      console.log('[ExpressBusRepo] Error creando parada:', error);
+      throw mapSupabaseError(new Error(error));
+    }
     return mapBusStopDtoToBusStop(data! as BusStopDto);
   }
 

@@ -4,6 +4,9 @@ export interface BusRoute {
   description: string | null;
   color: string;
   isActive: boolean;
+  estimatedTime: number | null;
+  distance: number | null;
+  direction: string | null;
   createdAt: string;
 }
 

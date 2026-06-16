@@ -3,6 +3,7 @@ import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '@/store/auth.store';
 import { env } from '@/core/config/env';
 import type { ChatMessage } from '../domain/chat.entity';
+import { ChatRepository } from '../infrastructure/chat.repository';
 
 export interface OnlineUser {
   socketId: string;
@@ -38,6 +39,27 @@ export function useChat(): ChatHookResult {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
+    let historyLoaded = false;
+
+    const loadHistory = async () => {
+      try {
+        const history = await ChatRepository.getMessages('general');
+        if (history.length > 0 && !historyLoaded) {
+          const mapped: ChatMessage[] = history.map((m) => ({
+            text: m.content,
+            from: m.senderName,
+            timestamp: new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            isOwn: m.senderName === username,
+          }));
+          setMessages(mapped);
+          historyLoaded = true;
+          console.log(`[useChat] Historial cargado: ${mapped.length} mensajes`);
+        }
+      } catch {
+        console.log('[useChat] No se pudo cargar el historial vía REST');
+      }
+    };
+
     const socketUrl = getSocketUrl();
     const socket: Socket = io(socketUrl, {
       autoConnect: true,
@@ -50,14 +72,33 @@ export function useChat(): ChatHookResult {
     socket.on('connect', () => {
       setIsConnected(true);
       socket.emit('usuario-conectado', { nombre: user?.fullName || '', email: user?.email || '', rol: user?.role || '' });
+      if (!historyLoaded) loadHistory();
     });
 
     socket.on('disconnect', () => {
       setIsConnected(false);
     });
 
+    socket.on('reconnect', () => {
+      console.log('[useChat] Reconectado — recargando historial');
+      historyLoaded = false;
+      loadHistory();
+    });
+
+    socket.on('chat-history', (history: { text: string; from: string; timestamp: string }[]) => {
+      if (historyLoaded) return;
+      const mapped: ChatMessage[] = history.map((m) => ({
+        text: m.text,
+        from: m.from,
+        timestamp: m.timestamp,
+        isOwn: m.from === username,
+      }));
+      setMessages(mapped);
+      historyLoaded = true;
+      console.log(`[useChat] Historial cargado vía socket: ${mapped.length} mensajes`);
+    });
+
     socket.on('mensaje-recibido', (payload: { text: string; from: string; timestamp: string }) => {
-      // Evitar duplicados: si el mensaje es propio, ya fue agregado optimísticamente en sendMessage
       if (payload.from === username) return;
       setMessages((prev) => [...prev, { ...payload, isOwn: false }]);
     });
@@ -81,6 +122,8 @@ export function useChat(): ChatHookResult {
     return () => {
       socket.off('connect');
       socket.off('disconnect');
+      socket.off('reconnect');
+      socket.off('chat-history');
       socket.off('mensaje-recibido');
       socket.off('usuarios-online');
       socket.off('usuario-conectado');

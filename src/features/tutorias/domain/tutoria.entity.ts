@@ -4,6 +4,8 @@ export interface Horario {
   horaFin: string;
 }
 
+export type TutoriaStatus = 'programada' | 'pendiente' | 'finalizada' | 'cancelada';
+
 export interface Tutoria {
   id: string;
   title: string;
@@ -16,7 +18,7 @@ export interface Tutoria {
   maxStudents: number;
   enrolledCount: number;
   horarios: Horario[];
-  status: 'programada' | 'en_curso' | 'finalizada' | 'cancelada';
+  status: TutoriaStatus;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

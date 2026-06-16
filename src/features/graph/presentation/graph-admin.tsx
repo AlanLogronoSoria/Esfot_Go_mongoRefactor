@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Edit2, Trash2 } from 'lucide-react-native';
 import { useCampusGraph, useGraphNodeMutations, useGraphEdgeMutations } from '@/features/graph/application/graph.hooks';
+import { logGraphStats, validateEdgeNodes, validateGraphIntegrity } from '@/features/graph/domain/graph-integrity';
 import type { GraphNode, GraphEdge } from '@/features/graph/domain/graph.entity';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
@@ -23,29 +24,77 @@ export function GraphAdmin() {
   const resetNodeForm = () => { setShowNodeForm(false); setEditingNode(null); setNLabel(''); setNLat(''); setNLng(''); };
   const resetEdgeForm = () => { setShowEdgeForm(false); setEditingEdge(null); setEFrom(''); setETo(''); setEWeight(''); };
 
-  const handleNodeSave = () => {
+  const handleNodeSave = useCallback(() => {
     if (!nLabel.trim()) return;
+
+    const lat = parseFloat(nLat);
+    const lng = parseFloat(nLng);
+
+    if (isNaN(lat) || lat < -90 || lat > 90 || lat === 0) {
+      console.log('[GraphAdmin] Latitud inválida:', nLat);
+      return;
+    }
+    if (isNaN(lng) || lng < -180 || lng > 180 || lng === 0) {
+      console.log('[GraphAdmin] Longitud inválida:', nLng);
+      return;
+    }
+
     upsertNode.mutateAsync(
-      { id: editingNode?.id, label: nLabel.trim(), latitude: parseFloat(nLat) || 0, longitude: parseFloat(nLng) || 0 },
+      { id: editingNode?.id, label: nLabel.trim(), latitude: lat, longitude: lng },
       { onSuccess: resetNodeForm }
     );
-  };
+  }, [nLabel, nLat, nLng, editingNode, upsertNode]);
 
-  const handleEdgeSave = () => {
-    if (!eFrom.trim() || !eTo.trim()) return;
+  const handleEdgeSave = useCallback(() => {
+    const fromId = eFrom.trim();
+    const toId = eTo.trim();
+    if (!fromId || !toId) return;
+
+    if (graph) {
+      const { valid, errors } = validateEdgeNodes(graph, fromId, toId);
+      if (!valid) {
+        console.log('[GraphAdmin] Validación de arista falló:', errors.join(', '));
+        Alert.alert('Arista inválida', errors.join('\n'));
+        return;
+      }
+    }
+
     upsertEdge.mutateAsync(
-      { id: editingEdge?.id, fromNodeId: eFrom.trim(), toNodeId: eTo.trim(), weight: parseFloat(eWeight) || 1, blocked: false, bidirectional: true },
+      {
+        id: editingEdge?.id,
+        fromNodeId: fromId,
+        toNodeId: toId,
+        weight: parseFloat(eWeight) || 1,
+        blocked: false,
+        bidirectional: true,
+      },
       { onSuccess: resetEdgeForm }
     );
-  };
+  }, [eFrom, eTo, eWeight, editingEdge, upsertEdge, graph]);
 
   const startEditNode = (n: GraphNode) => { setEditingNode(n); setShowNodeForm(true); setNLabel(n.label); setNLat(String(n.latitude)); setNLng(String(n.longitude)); };
   const startEditEdge = (e: GraphEdge) => { setEditingEdge(e); setShowEdgeForm(true); setEFrom(e.fromNodeId); setETo(e.toNodeId); setEWeight(String(e.weight)); };
 
   if (isLoading) return <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 40 }} />;
 
+  const stats = useMemo(() => graph ? validateGraphIntegrity(graph) : null, [graph]);
+
   return (
     <ScrollView contentContainerStyle={s.container}>
+      {stats && (stats.isolatedNodes.length > 0 || stats.danglingEdges.length > 0 || stats.selfLoops.length > 0) && (
+        <View style={s.statsBanner}>
+          <Text style={s.statsBannerTitle}>⚠️ Advertencias de integridad</Text>
+          {stats.isolatedNodes.length > 0 && (
+            <Text style={s.statsBannerText}>{stats.isolatedNodes.length} nodo(s) aislado(s)</Text>
+          )}
+          {stats.danglingEdges.length > 0 && (
+            <Text style={s.statsBannerText}>{stats.danglingEdges.length} arista(s) a nodos inexistentes</Text>
+          )}
+          {stats.selfLoops.length > 0 && (
+            <Text style={s.statsBannerText}>{stats.selfLoops.length} self-loop(s)</Text>
+          )}
+        </View>
+      )}
       <Text style={s.sectionTitle}>Nodos ({graph?.nodes.length ?? 0})</Text>
       <Pressable style={s.addBtn} onPress={() => { resetNodeForm(); setShowNodeForm(true); }}>
         <Text style={s.addBtnText}>+ Nodo</Text>
@@ -165,4 +214,12 @@ const s = StyleSheet.create({
     padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder,
   },
   cancelText: { ...Typography.body, color: T.textSecondary, fontWeight: '600' },
+
+  statsBanner: {
+    backgroundColor: T.warningBg, borderRadius: Sizes.radiusMd,
+    padding: 12, marginBottom: 12, gap: 4,
+    borderLeftWidth: 3, borderLeftColor: T.warning,
+  },
+  statsBannerTitle: { ...Typography.caption, fontWeight: '700', color: T.warning },
+  statsBannerText: { ...Typography.caption, color: T.textSecondary },
 });

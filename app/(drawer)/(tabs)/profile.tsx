@@ -17,6 +17,7 @@ import { UserEntity } from '@/features/auth/domain/user.entity';
 import { useInfiniteEvents } from '@/features/events/application/event.hooks';
 import { useBusRoutes } from '@/features/polibus/application/bus.hooks';
 import { useProfile } from '@/features/profile/application/profile.hooks';
+import { useFavoriteCount } from '@/features/favoritos/application/favorite.hooks';
 import { ProfileForm } from '@/features/profile/presentation/profile-form';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
@@ -96,7 +97,7 @@ export default function ProfileScreen() {
 
   const eventosCount = useMemo(() => events?.length ?? 0, [events]);
   const rutasCount = useMemo(() => (routes ?? []).filter((r) => r.isActive).length, [routes]);
-  const favoritosCount = 0;
+  const favoritosCount = useFavoriteCount();
 
   if (isInitialized && !user) return <Redirect href="/auth/login" />;
   if (!user) return null;

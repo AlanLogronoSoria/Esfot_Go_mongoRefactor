@@ -45,6 +45,7 @@ export interface Aula {
   capacidad?: number;
   ubicacion?: string;
   estado?: string;
+  edificio_id?: string;
   createdAt?: string;
   updatedAt?: string;
 }

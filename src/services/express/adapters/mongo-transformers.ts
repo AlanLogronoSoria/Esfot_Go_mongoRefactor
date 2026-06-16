@@ -102,6 +102,8 @@ interface CreateZoneEntity {
   fillColor: string;
   strokeColor: string;
   isActive: boolean;
+  restrictionType: string;
+  activeSchedule?: string | null;
 }
 
 export function transformZoneToDto(input: CreateZoneEntity): Record<string, unknown> {
@@ -112,6 +114,8 @@ export function transformZoneToDto(input: CreateZoneEntity): Record<string, unkn
     fill_color: input.fillColor,
     stroke_color: input.strokeColor,
     activo: input.isActive,
+    tipo_restriccion: input.restrictionType,
+    horario_activo: input.activeSchedule,
   };
 }
 
@@ -123,6 +127,8 @@ export function transformZoneUpdateToDto(input: Partial<CreateZoneEntity>): Reco
   if (input.fillColor !== undefined) dto.fill_color = input.fillColor;
   if (input.strokeColor !== undefined) dto.stroke_color = input.strokeColor;
   if (input.isActive !== undefined) dto.activo = input.isActive;
+  if (input.restrictionType !== undefined) dto.tipo_restriccion = input.restrictionType;
+  if (input.activeSchedule !== undefined) dto.horario_activo = input.activeSchedule;
   return dto;
 }
 
@@ -133,6 +139,9 @@ interface CreateBusRouteEntity {
   description?: string | null;
   color: string;
   isActive: boolean;
+  estimatedTime?: number | null;
+  distance?: number | null;
+  direction?: string | null;
 }
 
 export function transformBusRouteToDto(input: CreateBusRouteEntity): Record<string, unknown> {
@@ -141,6 +150,9 @@ export function transformBusRouteToDto(input: CreateBusRouteEntity): Record<stri
     descripcion: input.description,
     color: input.color,
     activo: input.isActive,
+    tiempo_estimado: input.estimatedTime,
+    distancia: input.distance,
+    direccion: input.direction,
   };
 }
 
@@ -150,6 +162,9 @@ export function transformBusRouteUpdateToDto(input: Partial<CreateBusRouteEntity
   if (input.description !== undefined) dto.descripcion = input.description;
   if (input.color !== undefined) dto.color = input.color;
   if (input.isActive !== undefined) dto.activo = input.isActive;
+  if (input.estimatedTime !== undefined) dto.tiempo_estimado = input.estimatedTime;
+  if (input.distance !== undefined) dto.distancia = input.distance;
+  if (input.direction !== undefined) dto.direccion = input.direction;
   return dto;
 }
 
