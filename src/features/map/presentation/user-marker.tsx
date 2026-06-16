@@ -1,11 +1,47 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withDelay,
+} from 'react-native-reanimated';
 import type { LocationObject } from 'expo-location';
 
 interface UserMarkerProps {
   location: LocationObject;
   showHeading?: boolean;
+}
+
+const AnimatedView = Animated.createAnimatedComponent(View);
+
+function PulseRing() {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.35);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.6, { duration: 1800 }),
+      -1,
+      false,
+    );
+    opacity.value = withRepeat(
+      withTiming(0, { duration: 1600 }),
+      -1,
+      false,
+    );
+  }, [scale, opacity]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <AnimatedView style={[styles.pulseRing, animStyle]} />
+  );
 }
 
 export const UserMarker = memo(
@@ -15,12 +51,13 @@ export const UserMarker = memo(
     return (
       <Marker
         coordinate={{ latitude, longitude }}
-        title="Mi ubicación"
+        title="Mi ubicacion"
         rotation={showHeading ? (heading ?? 0) : 0}
         anchor={{ x: 0.5, y: 0.5 }}
         tracksViewChanges={false}
         flat
       >
+        <PulseRing />
         <View style={styles.outer}>
           <View style={styles.inner}>
             <View style={styles.dot} />
@@ -33,10 +70,17 @@ export const UserMarker = memo(
   (prev, next) =>
     prev.location.coords.latitude === next.location.coords.latitude &&
     prev.location.coords.longitude === next.location.coords.longitude &&
-    prev.location.coords.heading === next.location.coords.heading
+    prev.location.coords.heading === next.location.coords.heading,
 );
 
 const styles = StyleSheet.create({
+  pulseRing: {
+    position: 'absolute',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(0, 51, 160, 0.15)',
+  },
   outer: {
     width: 28,
     height: 36,

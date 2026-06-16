@@ -1,4 +1,4 @@
-import { Sizes, DarkTheme as T } from "@/constants/design-system";
+import { Sizes, LightTheme as T, Shadows } from "@/constants/design-system";
 import { AppError } from "@/core/errors/app-error";
 import type { LoginInput } from "@/features/auth/domain/auth.schema";
 import { loginSchema } from "@/features/auth/domain/auth.schema";
@@ -13,10 +13,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
+import * as Haptics from "expo-haptics";
+import { Eye, EyeOff } from "lucide-react-native";
 
 type LoginRole = "estudiante" | "docente" | "admin";
 
@@ -146,7 +147,10 @@ export function LoginForm() {
           <Pressable
             key={role}
             style={[s.roleChip, selectedRole === role && s.roleChipActive]}
-            onPress={() => setSelectedRole(role)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSelectedRole(role);
+            }}
           >
             <Text
               style={[
@@ -192,9 +196,13 @@ export function LoginForm() {
             onBlur={onBlur}
             error={errors.password?.message}
             rightElement={
-              <TouchableOpacity onPress={() => setShowPw(!showPw)} hitSlop={8}>
-                <Text style={{ fontSize: 18 }}>{showPw ? "🙈" : "👁️"}</Text>
-              </TouchableOpacity>
+              <Pressable onPress={() => setShowPw(!showPw)} hitSlop={8}>
+                {showPw ? (
+                  <EyeOff size={18} strokeWidth={1.8} color={T.textSecondary} />
+                ) : (
+                  <Eye size={18} strokeWidth={1.8} color={T.textSecondary} />
+                )}
+              </Pressable>
             }
           />
         )}
@@ -217,14 +225,21 @@ const s = StyleSheet.create({
   roleRow: { flexDirection: "row", gap: 8 },
   roleChip: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: Sizes.radiusMd,
     borderWidth: 1.5,
     borderColor: T.inputBorder,
     alignItems: "center",
     backgroundColor: T.surface,
+    ...Shadows.sm,
   },
-  roleChipActive: { borderColor: T.primary, backgroundColor: T.primaryMuted },
+  roleChipActive: {
+    borderColor: T.primary,
+    backgroundColor: T.primaryMuted,
+    ...Shadows.md,
+    shadowColor: T.primary,
+    shadowOpacity: 0.15,
+  },
   roleChipText: { fontSize: 13, fontWeight: "600", color: T.textSecondary },
   roleChipTextActive: { color: T.primary },
   errBanner: {

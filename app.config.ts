@@ -13,6 +13,10 @@ const config: ExpoConfig = {
     ...appJson.expo.ios,
     ...(apiKey ? { config: { googleMapsApiKey: apiKey } } : {}),
   },
+  plugins: [
+    ...(Array.isArray(appJson.expo.plugins) ? appJson.expo.plugins : []),
+    'expo-font',
+  ],
 } as ExpoConfig;
 
 export default config;

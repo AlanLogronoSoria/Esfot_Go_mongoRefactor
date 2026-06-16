@@ -1,18 +1,24 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, RefreshControl, FlatList, Modal, TouchableOpacity } from 'react-native';
+import {
+  View, Text, StyleSheet, RefreshControl, Modal,
+  Pressable, ActivityIndicator,
+} from 'react-native';
 import Animated, {
-  useAnimatedScrollHandler,
   useSharedValue,
   FadeInDown,
 } from 'react-native-reanimated';
+import { FlashList } from '@shopify/flash-list';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Search, X, CalendarDays } from 'lucide-react-native';
 import { useInfiniteEvents } from '@/features/events/application/event.hooks';
 import { EventCardSkeleton } from '@/features/events/presentation/event-skeleton';
 import { EventForm } from '@/features/events/presentation/event-form';
 import { EventDetailModal } from '@/features/events/presentation/event-detail';
 import type { Event, EventDateFilter } from '@/features/events/domain/event.entity';
 import { GlassInput } from '@/shared/components/premium';
-import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { CategoryChip, type Category } from '@/components/ui/CategoryChip';
 import { EventCard } from '@/components/ui/EventCard';
@@ -29,10 +35,9 @@ const DATE_FILTERS: Category[] = [
   { key: 'pasados', label: 'Pasados' },
 ];
 
-const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
-
 export default function EventsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const canCreate = user && hasPermission(user.role, 'create:events');
   const [search, setSearch] = useState('');
@@ -59,11 +64,12 @@ export default function EventsScreen() {
 
   const scrollY = useSharedValue(0);
 
-  const onScroll = useAnimatedScrollHandler((e) => {
-    scrollY.value = e.contentOffset.y;
-  });
+  const handleScroll = useCallback((e: { nativeEvent: { contentOffset: { y: number } } }) => {
+    scrollY.value = e.nativeEvent.contentOffset.y;
+  }, [scrollY]);
 
   const handleEventPress = useCallback((event: Event) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setDetailEvent(event);
   }, []);
 
@@ -93,13 +99,13 @@ export default function EventsScreen() {
         onAvatarPress={() => router.push('/profile' as any)}
       />
 
-      <AnimatedFlatList
+      <FlashList
         data={events}
         renderItem={renderItem as any}
         keyExtractor={keyFn as any}
         contentContainerStyle={styles.list}
         keyboardShouldPersistTaps="handled"
-        onScroll={onScroll}
+        onScroll={handleScroll}
         scrollEventThrottle={16}
         onEndReached={() => hasNextPage && !isFetchingNextPage && fetchNextPage()}
         onEndReachedThreshold={0.4}
@@ -119,7 +125,7 @@ export default function EventsScreen() {
 
             <Animated.View entering={FadeInDown.delay(100)} style={styles.searchWrap}>
               <GlassInput
-                icon="🔍"
+                icon={<Search size={18} strokeWidth={2} color={T.textTertiary} />}
                 placeholder="Buscar eventos..."
                 value={search}
                 onChangeText={(t: string) => {
@@ -140,7 +146,9 @@ export default function EventsScreen() {
         }
         ListFooterComponent={
           isFetchingNextPage ? (
-            <Text style={styles.footer}>Cargando mas...</Text>
+            <View style={styles.footer}>
+              <ActivityIndicator size="small" color={T.primary} />
+            </View>
           ) : null
         }
         ListEmptyComponent={
@@ -152,7 +160,7 @@ export default function EventsScreen() {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>📭</Text>
+              <CalendarDays size={52} strokeWidth={1.2} color={T.textTertiary} />
               <Text style={styles.emptyText}>No se encontraron eventos</Text>
               <Text style={styles.emptySubtext}>
                 Intenta con otros filtros o terminos de busqueda
@@ -166,17 +174,14 @@ export default function EventsScreen() {
             onRefresh={() => refetch()}
             tintColor={T.primary}
             colors={[T.primary]}
+            progressViewOffset={60}
           />
         }
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews
-        maxToRenderPerBatch={5}
-        windowSize={7}
-        initialNumToRender={5}
       />
 
       {canCreate && (
-        <FloatingActionButton icon="+" onPress={() => setShowCreateModal(true)} bottom={90} right={20} />
+        <FloatingActionButton onPress={() => setShowCreateModal(true)} bottom={insets.bottom + 96} right={20} />
       )}
 
       <Modal
@@ -188,9 +193,12 @@ export default function EventsScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Crear evento</Text>
-            <TouchableOpacity onPress={handleCloseForm} activeOpacity={0.7}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
+            <Pressable
+              onPress={handleCloseForm}
+              style={styles.modalCloseBtn}
+            >
+              <X size={18} strokeWidth={2.2} color={T.textSecondary} />
+            </Pressable>
           </View>
           <EventForm onClose={handleCloseForm} />
         </View>
@@ -205,9 +213,12 @@ export default function EventsScreen() {
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Editar evento</Text>
-            <TouchableOpacity onPress={handleCloseForm} activeOpacity={0.7}>
-              <Text style={styles.modalClose}>✕</Text>
-            </TouchableOpacity>
+            <Pressable
+              onPress={handleCloseForm}
+              style={styles.modalCloseBtn}
+            >
+              <X size={18} strokeWidth={2.2} color={T.textSecondary} />
+            </Pressable>
           </View>
           {editEvent && <EventForm onClose={handleCloseForm} editEvent={editEvent} />}
         </View>
@@ -237,51 +248,54 @@ const styles = StyleSheet.create({
 
   header: {
     paddingHorizontal: Sizes.paddingMd,
-    paddingTop: 72,
+    paddingTop: 76,
     paddingBottom: Sizes.gapSm,
-    gap: 4,
+    gap: 6,
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   title: { ...Typography.h2, color: T.textPrimary },
   countBadge: {
     backgroundColor: T.primaryMuted,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: T.primary + '20',
   },
   countText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '700',
     color: T.primary,
   },
+
   subtitle: { ...Typography.body, color: T.textSecondary },
 
-  searchWrap: { paddingHorizontal: Sizes.paddingMd, paddingBottom: Sizes.gapSm },
+  searchWrap: {
+    paddingHorizontal: Sizes.paddingMd,
+    paddingBottom: Sizes.gapSm,
+  },
 
   filterWrap: { marginBottom: Sizes.gapMd },
 
-  skels: { paddingHorizontal: Sizes.paddingMd },
+  skels: { paddingHorizontal: Sizes.paddingMd, gap: Sizes.gapSm },
 
   footer: {
-    textAlign: 'center',
-    color: T.textSecondary,
+    alignItems: 'center',
     padding: Sizes.paddingMd,
-    fontSize: 13,
   },
 
   empty: {
     alignItems: 'center',
-    paddingVertical: 60,
+    paddingVertical: 80,
     paddingHorizontal: Sizes.paddingMd,
-    gap: 8,
+    gap: 10,
   },
-  emptyIcon: { fontSize: 48 },
   emptyText: { ...Typography.h4, color: T.textSecondary },
-  emptySubtext: { ...Typography.bodySm, color: T.textTertiary, textAlign: 'center' },
+  emptySubtext: { ...Typography.bodySm, color: T.textTertiary, textAlign: 'center', maxWidth: 260 },
 
   modalContainer: { flex: 1, backgroundColor: T.background },
   modalHeader: {
@@ -293,7 +307,15 @@ const styles = StyleSheet.create({
     paddingBottom: Sizes.paddingMd,
     borderBottomWidth: 1,
     borderBottomColor: T.divider,
+    backgroundColor: T.surface,
   },
   modalTitle: { ...Typography.h3, color: T.textPrimary },
-  modalClose: { fontSize: 22, color: T.textSecondary, fontWeight: '700' },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: T.surfaceBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });

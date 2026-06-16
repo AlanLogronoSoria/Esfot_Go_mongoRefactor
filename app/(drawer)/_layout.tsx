@@ -1,10 +1,16 @@
 import { Drawer } from 'expo-router/drawer';
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import {
+  User, CalendarDays, Star, MapPin, BookOpen, Shield, Map,
+  Upload, GraduationCap, MessageCircle, Settings2, HelpCircle, LogOut, X,
+} from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth.store';
 import { UserEntity } from '@/features/auth/domain/user.entity';
-import { LightTheme as T, Typography, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Typography, Sizes, Shadows } from '@/constants/design-system';
 
 function CustomDrawerContent() {
   const router = useRouter();
@@ -19,29 +25,30 @@ function CustomDrawerContent() {
     router.replace('/auth/login');
   };
 
-  const items: { icon: string; label: string; route: string; roles?: string[] }[] = [
-    { icon: '👤', label: 'Mi Perfil', route: '/profile' },
-    { icon: '📅', label: 'Mis Eventos', route: '/events' },
-    { icon: '⭐', label: 'Favoritos', route: '/favorites' },
-    { icon: '🏫', label: 'Edificios', route: '/map' },
-    { icon: '📚', label: 'Aulas', route: '/map' },
+  const items: { Icon: React.ComponentType<any>; label: string; route: string; color?: string }[] = [
+    { Icon: User, label: 'Mi Perfil', route: '/profile', color: T.primary },
+    { Icon: CalendarDays, label: 'Mis Eventos', route: '/events', color: T.info },
+    { Icon: Star, label: 'Favoritos', route: '/favorites', color: T.highlight },
+    { Icon: MapPin, label: 'Edificios', route: '/map', color: T.success },
+    { Icon: BookOpen, label: 'Aulas', route: '/map', color: T.info },
     ...(isAdmin ? [
-      { icon: '🛡️', label: 'Panel Administrador', route: '/admin' },
-      { icon: '🗺️', label: 'Mapa Admin', route: '/admin-map' },
-      { icon: '📤', label: 'Carga Masiva', route: '/bulk-upload' },
+      { Icon: Shield, label: 'Panel Administrador', route: '/admin', color: T.accent },
+      { Icon: Map, label: 'Mapa Admin', route: '/admin-map', color: T.primary },
+      { Icon: Upload, label: 'Carga Masiva', route: '/bulk-upload', color: T.success },
     ] : []),
-    ...(isDocente ? [{ icon: '👨‍🏫', label: 'Tutorias', route: '/tutorias' }] : []),
-    { icon: '💬', label: 'Chat', route: '/chat' },
-    { icon: '⚙️', label: 'Configuracion', route: '/config' },
-    { icon: '❓', label: 'Ayuda', route: '/help' },
+    ...(isDocente ? [{ Icon: GraduationCap, label: 'Tutorias', route: '/tutorias', color: T.highlight }] : []),
+    { Icon: MessageCircle, label: 'Chat', route: '/chat', color: T.primary },
+    { Icon: Settings2, label: 'Configuracion', route: '/config', color: T.textSecondary },
+    { Icon: HelpCircle, label: 'Ayuda', route: '/help', color: T.textSecondary },
   ];
 
   return (
     <View style={styles.drawer}>
       <View style={styles.header}>
-        <TouchableOpacity
+        <Pressable
           style={styles.closeBtn}
           onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             if (router.canGoBack()) {
               router.back();
             } else {
@@ -49,12 +56,12 @@ function CustomDrawerContent() {
             }
           }}
         >
-          <Text style={styles.closeBtnText}>✕</Text>
-        </TouchableOpacity>
+          <X size={16} strokeWidth={2.2} color={T.textSecondary} />
+        </Pressable>
 
         <View style={styles.profileSection}>
           {(user as any)?.avatarUrl ? (
-            <Image source={{ uri: (user as any).avatarUrl }} style={styles.avatar} />
+            <Image source={{ uri: (user as any).avatarUrl }} style={styles.avatar} contentFit="cover" transition={300} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>{ue?.initials ?? 'U'}</Text>
@@ -76,28 +83,40 @@ function CustomDrawerContent() {
 
       <View style={styles.items}>
         {items.map((item) => (
-          <TouchableOpacity
+          <Pressable
             key={item.label}
-            style={styles.item}
+            style={({ pressed }) => [
+              styles.item,
+              pressed && { backgroundColor: T.pressed },
+            ]}
             onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               router.push(item.route as any);
             }}
-            activeOpacity={0.6}
           >
-            <Text style={styles.itemIcon}>{item.icon}</Text>
+            <View style={[styles.itemIconWrap, { backgroundColor: (item.color ?? T.primary) + '18' }]}>
+              <item.Icon size={18} strokeWidth={1.8} color={item.color ?? T.primary} />
+            </View>
             <Text style={styles.itemLabel}>{item.label}</Text>
-          </TouchableOpacity>
+          </Pressable>
         ))}
       </View>
 
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={handleLogout}
-        activeOpacity={0.7}
+      <Pressable
+        style={({ pressed }) => [
+          styles.logoutBtn,
+          pressed && { backgroundColor: T.pressed },
+        ]}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleLogout();
+        }}
       >
-        <Text style={styles.logoutIcon}>🚪</Text>
+        <View style={[styles.logoutIconWrap, { backgroundColor: T.errorBg }]}>
+          <LogOut size={18} strokeWidth={1.8} color={T.error} />
+        </View>
         <Text style={styles.logoutText}>Cerrar Sesion</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
@@ -137,22 +156,14 @@ const styles = StyleSheet.create({
     paddingTop: 52,
     borderBottomWidth: 1,
     borderBottomColor: T.divider,
-    backgroundColor: T.surface,
+    backgroundColor: T.surfaceGlass,
   },
   closeBtn: {
     alignSelf: 'flex-end',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: T.neutralMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: T.surfaceBorder,
+    justifyContent: 'center', alignItems: 'center',
     marginBottom: Sizes.gapMd,
-  },
-  closeBtnText: {
-    fontSize: 14,
-    color: T.textSecondary,
-    fontWeight: '700',
   },
   profileSection: {
     flexDirection: 'row',
@@ -160,19 +171,14 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 3,
-    borderColor: T.primaryMuted,
+    width: 56, height: 56, borderRadius: 28,
+    borderWidth: 3, borderColor: T.primaryMuted,
   },
   avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 56, height: 56, borderRadius: 28,
     backgroundColor: T.primaryMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: T.primaryLight + '30',
   },
   avatarText: {
     fontSize: 22,
@@ -209,15 +215,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   item: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     gap: 14,
     paddingHorizontal: Sizes.paddingLg,
-    paddingVertical: 14,
+    paddingVertical: 13,
+    borderRadius: Sizes.radiusSm,
+    marginHorizontal: Sizes.paddingSm,
   },
-  itemIcon: {
-    fontSize: 20,
-    width: 28,
+  itemIconWrap: {
+    width: 36, height: 36, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
   },
   itemLabel: {
     ...Typography.body,
@@ -225,18 +232,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center',
     gap: 14,
     paddingHorizontal: Sizes.paddingLg,
     paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: T.divider,
-    backgroundColor: T.surface,
+    borderTopWidth: 1, borderTopColor: T.divider,
+    backgroundColor: T.surfaceGlass,
   },
-  logoutIcon: {
-    fontSize: 20,
-    width: 28,
+  logoutIconWrap: {
+    width: 36, height: 36, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
   },
   logoutText: {
     ...Typography.body,

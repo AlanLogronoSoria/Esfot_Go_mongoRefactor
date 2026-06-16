@@ -1,22 +1,25 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Pressable,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
-  useSharedValue,
-  useAnimatedScrollHandler,
+  FadeInDown, useSharedValue, useAnimatedScrollHandler,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import {
+  Bell, CalendarDays, Bus, Map, MapPin, Settings2, User, KeyRound,
+  Mail, HelpCircle, ChevronRight, LogOut, Star,
+} from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { useAuthStore } from '@/store/auth.store';
 
 // ─── Setting Row ───
 function SettingRow({
-  icon, label, value, onPress, rightElement, isLast = false,
+  icon: Icon, label, value, onPress, rightElement, isLast = false,
 }: {
-  icon: string;
+  icon: React.ComponentType<any>;
   label: string;
   value?: string;
   onPress?: () => void;
@@ -24,33 +27,42 @@ function SettingRow({
   isLast?: boolean;
 }) {
   return (
-    <TouchableOpacity
-      style={[styles.row, isLast && styles.rowLast]}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
+    <Pressable
+      style={({ pressed }) => [
+        styles.row, isLast && styles.rowLast,
+        pressed && onPress && { backgroundColor: T.pressed },
+      ]}
+      onPress={() => {
+        if (onPress) {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onPress();
+        }
+      }}
       disabled={!onPress && !rightElement}
     >
-      <Text style={styles.rowIcon}>{icon}</Text>
+      <View style={styles.rowIconWrap}>
+        <Icon size={18} strokeWidth={1.8} color={T.primary} />
+      </View>
       <Text style={styles.rowLabel}>{label}</Text>
       <View style={styles.rowRight}>
         {value && <Text style={styles.rowValue}>{value}</Text>}
         {rightElement}
         {onPress && !rightElement && (
-          <Text style={styles.rowChevron}>›</Text>
+          <ChevronRight size={18} strokeWidth={1.8} color={T.textTertiary} />
         )}
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 
 // ─── Settings Group ───
 function SettingGroup({
-  title, icon, children, delay = 0,
-}: { title: string; icon: string; children: React.ReactNode; delay?: number }) {
+  title, icon: Icon, children, delay = 0,
+}: { title: string; icon: React.ComponentType<any>; children: React.ReactNode; delay?: number }) {
   return (
     <Animated.View entering={FadeInDown.delay(delay).duration(400)} style={styles.group}>
       <View style={styles.groupHeader}>
-        <Text style={styles.groupIcon}>{icon}</Text>
+        <Icon size={16} strokeWidth={2} color={T.primary} />
         <Text style={styles.groupTitle}>{title}</Text>
       </View>
       <View style={styles.groupCard}>
@@ -107,10 +119,8 @@ export default function ConfigScreen() {
         </Animated.View>
 
         {/* Notificaciones */}
-        <SettingGroup title="Notificaciones" icon="🔔" delay={80}>
-          <SettingRow
-            icon="📅"
-            label="Eventos del campus"
+        <SettingGroup title="Notificaciones" icon={Bell} delay={80}>
+          <SettingRow icon={CalendarDays} label="Eventos del campus"
             rightElement={
               <Switch
                 value={notifEvents}
@@ -120,9 +130,7 @@ export default function ConfigScreen() {
               />
             }
           />
-          <SettingRow
-            icon="🚌"
-            label="Actualizaciones Polibus"
+          <SettingRow icon={Bus} label="Actualizaciones Polibus"
             rightElement={
               <Switch
                 value={notifPolibus}
@@ -132,9 +140,7 @@ export default function ConfigScreen() {
               />
             }
           />
-          <SettingRow
-            icon="📰"
-            label="Noticias institucionales"
+          <SettingRow icon={Bell} label="Noticias institucionales"
             isLast
             rightElement={
               <Switch
@@ -148,10 +154,8 @@ export default function ConfigScreen() {
         </SettingGroup>
 
         {/* Mapa */}
-        <SettingGroup title="Mapa y Navegación" icon="🗺️" delay={140}>
-          <SettingRow
-            icon="📏"
-            label="Unidades de distancia"
+        <SettingGroup title="Mapa y Navegacion" icon={Map} delay={140}>
+          <SettingRow icon={MapPin} label="Unidades de distancia"
             rightElement={
               <View style={styles.segmented}>
                 {(['metros', 'km'] as const).map((u) => (
@@ -168,9 +172,7 @@ export default function ConfigScreen() {
               </View>
             }
           />
-          <SettingRow
-            icon="🖼️"
-            label="Mapa de alta calidad"
+          <SettingRow icon={Settings2} label="Mapa de alta calidad"
             isLast
             rightElement={
               <Switch
@@ -184,10 +186,8 @@ export default function ConfigScreen() {
         </SettingGroup>
 
         {/* Privacidad */}
-        <SettingGroup title="Privacidad" icon="🔒" delay={200}>
-          <SettingRow
-            icon="📍"
-            label="Compartir mi ubicación"
+        <SettingGroup title="Privacidad" icon={Settings2} delay={200}>
+          <SettingRow icon={MapPin} label="Compartir mi ubicacion"
             rightElement={
               <Switch
                 value={shareLocation}
@@ -197,44 +197,28 @@ export default function ConfigScreen() {
               />
             }
           />
-          <SettingRow
-            icon="📋"
-            label="Términos y condiciones"
+          <SettingRow icon={Settings2} label="Terminos y condiciones"
             onPress={() => {}}
             isLast
           />
         </SettingGroup>
 
         {/* Cuenta */}
-        <SettingGroup title="Cuenta" icon="👤" delay={260}>
-          <SettingRow
-            icon="🔑"
-            label="Cambiar contraseña"
+        <SettingGroup title="Cuenta" icon={User} delay={260}>
+          <SettingRow icon={KeyRound} label="Cambiar contrasena"
             onPress={() => router.push('/auth/recover' as any)}
           />
-          <SettingRow
-            icon="📧"
-            label="Actualizar correo"
+          <SettingRow icon={Mail} label="Actualizar correo"
             onPress={() => router.push('/profile' as any)}
             isLast
           />
         </SettingGroup>
 
         {/* Información */}
-        <SettingGroup title="Información" icon="ℹ️" delay={320}>
-          <SettingRow
-            icon="📱"
-            label="Versión de la app"
-            value="1.0.0"
-          />
-          <SettingRow
-            icon="🏫"
-            label="ESFOT - EPN"
-            value="2025-2026"
-          />
-          <SettingRow
-            icon="❓"
-            label="Centro de ayuda"
+        <SettingGroup title="Informacion" icon={Settings2} delay={320}>
+          <SettingRow icon={Star} label="Version de la app" value="1.0.0" />
+          <SettingRow icon={Star} label="ESFOT - EPN" value="2025-2026" />
+          <SettingRow icon={HelpCircle} label="Centro de ayuda"
             onPress={() => router.push('/help' as any)}
             isLast
           />
@@ -242,14 +226,16 @@ export default function ConfigScreen() {
 
         {/* Logout */}
         <Animated.View entering={FadeInDown.delay(380).duration(400)} style={styles.logoutSection}>
-          <TouchableOpacity
-            style={styles.logoutBtn}
-            onPress={handleLogout}
-            activeOpacity={0.8}
+          <Pressable
+            style={({ pressed }) => [styles.logoutBtn, pressed && { opacity: 0.8 }]}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              handleLogout();
+            }}
           >
-            <Text style={styles.logoutIcon}>🚪</Text>
-            <Text style={styles.logoutText}>Cerrar sesión</Text>
-          </TouchableOpacity>
+            <LogOut size={18} strokeWidth={2} color={T.error} />
+            <Text style={styles.logoutText}>Cerrar sesion</Text>
+          </Pressable>
         </Animated.View>
 
         <View style={{ height: 100 }} />
@@ -278,85 +264,53 @@ const styles = StyleSheet.create({
     gap: Sizes.gapSm,
   },
   groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 2,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 2,
   },
-  groupIcon: { fontSize: 16 },
   groupTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: T.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    ...Typography.overline, color: T.primary,
   },
   groupCard: {
-    backgroundColor: T.surface,
-    borderRadius: Sizes.radiusLg,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    overflow: 'hidden',
-    ...Shadows.sm,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
   },
 
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Sizes.paddingMd,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: T.divider,
-    gap: 12,
-    minHeight: 52,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Sizes.paddingMd, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
+    gap: 14, minHeight: 52,
   },
   rowLast: { borderBottomWidth: 0 },
-  rowIcon: { fontSize: 18, width: 24, textAlign: 'center' },
-  rowLabel: { ...Typography.body, color: T.textPrimary, flex: 1, fontSize: 15 },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  rowIconWrap: {
+    width: 32, height: 32, borderRadius: 10,
+    backgroundColor: T.primaryMuted,
+    justifyContent: 'center', alignItems: 'center',
   },
+  rowLabel: { ...Typography.body, color: T.textPrimary, flex: 1, fontSize: 15 },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   rowValue: { ...Typography.bodySm, color: T.textSecondary },
-  rowChevron: { fontSize: 22, color: T.textTertiary, marginRight: -4 },
 
   segmented: {
-    flexDirection: 'row',
-    backgroundColor: T.inputBg,
-    borderRadius: 8,
-    padding: 2,
+    flexDirection: 'row', backgroundColor: T.inputBg,
+    borderRadius: Sizes.radiusSm, padding: 3, gap: 2,
   },
   segBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: Sizes.radiusXs,
   },
-  segBtnActive: {
-    backgroundColor: T.primary,
-  },
-  segText: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
+  segBtnActive: { backgroundColor: T.primary, ...Shadows.sm },
+  segText: { ...Typography.caption, color: T.textSecondary },
   segTextActive: { color: '#FFFFFF' },
 
-  logoutSection: {
-    paddingHorizontal: Sizes.paddingMd,
-    marginTop: 4,
-  },
+  logoutSection: { paddingHorizontal: Sizes.paddingMd, marginTop: 4 },
   logoutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    backgroundColor: T.errorBg,
-    borderRadius: Sizes.radiusLg,
-    padding: Sizes.paddingMd,
-    borderWidth: 1,
-    borderColor: T.error + '30',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, backgroundColor: T.errorBg,
+    borderRadius: Sizes.radiusLg, padding: Sizes.paddingMd,
+    borderWidth: 1, borderColor: T.error + '30',
+    ...Shadows.sm,
   },
-  logoutIcon: { fontSize: 20 },
-  logoutText: {
-    ...Typography.button,
-    color: T.error,
-    fontSize: 15,
-  },
+  logoutText: { ...Typography.button, color: T.error, fontSize: 15 },
 });

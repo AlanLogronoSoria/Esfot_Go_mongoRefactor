@@ -1,10 +1,12 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { View, Text, TextInput as RNInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TextInput as RNInput, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { z } from 'zod';
 import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
+import { X } from 'lucide-react-native';
 import type { Tutoria, Horario } from '../domain/tutoria.entity';
-import { LightTheme as T, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'];
 
@@ -132,7 +134,7 @@ export function TutoriaForm({ editData, onSubmit, isLoading }: TutoriaFormProps)
             <View key={index} style={s.horarioRow}>
               <View style={s.dayPicker}>
                 {DIAS.map((dia) => (
-                  <TouchableOpacity
+                  <Pressable
                     key={dia}
                     style={[s.dayChip, horario.dia === dia && s.dayChipOn]}
                     onPress={() => handleHorarioChange(index, 'dia', dia)}
@@ -140,7 +142,7 @@ export function TutoriaForm({ editData, onSubmit, isLoading }: TutoriaFormProps)
                     <Text style={[s.dayChipText, horario.dia === dia && s.dayChipTextOn]}>
                       {dia.slice(0, 3)}
                     </Text>
-                  </TouchableOpacity>
+                  </Pressable>
                 ))}
               </View>
               <View style={s.timeRow}>
@@ -159,20 +161,23 @@ export function TutoriaForm({ editData, onSubmit, isLoading }: TutoriaFormProps)
                 />
               </View>
               {horarios.length > 1 && (
-                <TouchableOpacity style={s.removeBtn} onPress={() => eliminarHorario(index)}>
-                  <Text style={s.removeBtnText}>✕</Text>
-                </TouchableOpacity>
+                <Pressable style={s.removeBtn} onPress={() => eliminarHorario(index)}>
+                  <X size={12} strokeWidth={2.2} color={T.error} />
+                </Pressable>
               )}
             </View>
           ))}
-          <TouchableOpacity style={s.addBtn} onPress={agregarHorario}>
+          <Pressable style={s.addBtn} onPress={agregarHorario}>
             <Text style={s.addBtnText}>+ Agregar horario</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
-        <TouchableOpacity style={[s.btn, isLoading && s.btnOff]} onPress={handleSubmit(doSubmit)} disabled={isLoading}>
-          {isLoading ? <ActivityIndicator color={T.text} /> : <Text style={s.btnT}>{editData ? 'Guardar cambios' : 'Crear tutoría'}</Text>}
-        </TouchableOpacity>
+        <Pressable style={[s.btn, isLoading && s.btnOff]} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSubmit(doSubmit)();
+        }} disabled={isLoading}>
+          {isLoading ? <ActivityIndicator color="#FFFFFF" /> : <Text style={s.btnT}>{editData ? 'Guardar cambios' : 'Crear tutoria'}</Text>}
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -186,42 +191,53 @@ const s = StyleSheet.create({
   scroll: { paddingBottom: 40 },
   root: { gap: 16, padding: 16 },
   field: { gap: 4 },
-  label: { fontSize: 12, fontWeight: '600', color: T.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: Sizes.radiusMd, padding: 14, fontSize: 15, color: T.inputText },
+  label: { ...Typography.overline, color: T.textSecondary },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 14,
+    fontSize: 15, color: T.inputText,
+  },
   textArea: { minHeight: 80 },
   inputErr: { borderColor: T.error },
-  err: { color: T.error, fontSize: 12 },
+  err: { ...Typography.caption, color: T.error },
   row: { flexDirection: 'row', gap: 12 },
-  btn: { backgroundColor: T.primary, borderRadius: Sizes.radiusMd, padding: 16, alignItems: 'center', marginTop: 8 },
+  btn: {
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
   btnOff: { opacity: 0.5 },
-  btnT: { color: T.text, fontSize: 15, fontWeight: '700' },
+  btnT: { ...Typography.button, color: '#FFFFFF', fontSize: 15 },
   horariosSection: { gap: 10 },
   horarioRow: {
-    backgroundColor: T.surface, borderRadius: Sizes.radiusMd, padding: 12,
-    borderWidth: 1, borderColor: T.cardBorder, gap: 10,
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusMd,
+    padding: 12, borderWidth: 1, borderColor: T.cardBorder, gap: 10,
   },
   dayPicker: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
   dayChip: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
-    backgroundColor: T.inputBg, borderWidth: 1, borderColor: 'transparent',
+    backgroundColor: T.inputBg, borderWidth: 1, borderColor: T.cardBorder,
   },
-  dayChipOn: { backgroundColor: T.primaryMuted, borderColor: T.primary },
-  dayChipText: { fontSize: 11, fontWeight: '600', color: T.textSecondary },
+  dayChipOn: {
+    backgroundColor: T.primaryMuted, borderColor: T.primary,
+    ...Shadows.sm,
+  },
+  dayChipText: { ...Typography.caption, color: T.textSecondary },
   dayChipTextOn: { color: T.primary },
   timeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   timeInput: {
     flex: 1, backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
-    borderRadius: Sizes.radiusSm, padding: 10, fontSize: 14, color: T.inputText, textAlign: 'center',
+    borderRadius: Sizes.radiusSm, padding: 10,
+    fontSize: 14, color: T.inputText, textAlign: 'center',
   },
-  timeSep: { fontSize: 13, color: T.textSecondary },
+  timeSep: { ...Typography.bodySm, color: T.textSecondary },
   removeBtn: {
     alignSelf: 'flex-end', width: 28, height: 28, borderRadius: 14,
     backgroundColor: T.errorBg, justifyContent: 'center', alignItems: 'center',
   },
-  removeBtnText: { fontSize: 12, color: T.error, fontWeight: '700' },
   addBtn: {
     alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12,
     borderRadius: 8, borderWidth: 1, borderColor: T.primary, borderStyle: 'dashed',
   },
-  addBtnText: { fontSize: 12, fontWeight: '600', color: T.primary },
+  addBtnText: { ...Typography.caption, fontWeight: '600', color: T.primary },
 });

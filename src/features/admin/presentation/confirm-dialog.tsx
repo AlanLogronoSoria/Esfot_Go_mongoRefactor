@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { View, Text, Pressable, StyleSheet, Modal, ActivityIndicator } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -25,25 +26,33 @@ export function ConfirmDialog({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.7}>
+            <Pressable
+              style={styles.cancelBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onCancel();
+              }}
+            >
               <Text style={styles.cancelText}>Cancelar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={[
                 styles.confirmBtn,
                 confirmStyle === 'danger' && styles.confirmDanger,
                 isLoading && styles.confirmDisabled,
               ]}
-              onPress={onConfirm}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onConfirm();
+              }}
               disabled={isLoading}
-              activeOpacity={0.8}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color={T.surface} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Text style={styles.confirmText}>{confirmLabel}</Text>
               )}
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </View>
@@ -53,63 +62,35 @@ export function ConfirmDialog({
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, backgroundColor: T.overlay,
+    justifyContent: 'center', alignItems: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: T.surface,
-    borderRadius: 16,
-    padding: 24,
-    width: '100%',
-    maxWidth: 360,
-    gap: 16,
-    ...Shadows.lg,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
+    padding: 24, width: '100%', maxWidth: 340,
+    gap: 18, borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  message: {
-    fontSize: 14,
-    color: T.textSecondary,
-    lineHeight: 20,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  title: { ...Typography.h4, color: T.textPrimary },
+  message: { ...Typography.body, color: T.textSecondary, lineHeight: 22 },
+  actions: { flexDirection: 'row', gap: 12 },
   cancelBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: T.inputBg,
-    alignItems: 'center',
+    flex: 1, padding: 14, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.surfaceBorder, alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
   },
-  cancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
+  cancelText: { ...Typography.body, fontWeight: '600', color: T.textSecondary },
   confirmBtn: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: T.primary,
-    alignItems: 'center',
+    flex: 1, padding: 14, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.primary, alignItems: 'center',
+    ...Shadows.sm, shadowColor: T.primary, shadowOpacity: 0.3,
   },
   confirmDanger: {
     backgroundColor: T.error,
+    shadowColor: T.error,
   },
-  confirmDisabled: {
-    opacity: 0.6,
-  },
-  confirmText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.surface,
-  },
+  confirmDisabled: { opacity: 0.6 },
+  confirmText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
 });

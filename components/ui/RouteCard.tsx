@@ -1,8 +1,10 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, Pressable, StyleSheet,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Star, Navigation } from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export interface Route {
@@ -47,36 +49,31 @@ export function RouteCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(animationDelay).duration(400)}>
-      <TouchableOpacity
-        style={styles.card}
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
         onPress={onPress}
-        activeOpacity={0.92}
       >
-        {/* Color indicator */}
         <View style={[styles.colorBar, { backgroundColor: accentColor }]} />
 
-        {/* Content */}
         <View style={styles.content}>
-          {/* Header row */}
           <View style={styles.headerRow}>
-            <Text style={styles.icon}>{route.icon ?? '🗺️'}</Text>
+            <Navigation size={16} strokeWidth={2} color={accentColor} />
             <Text style={styles.name} numberOfLines={1}>{route.name}</Text>
             {route.isActive !== undefined && (
               <View style={[
                 styles.statusBadge,
-                { backgroundColor: route.isActive ? T.successBg : T.errorBg }
+                { backgroundColor: route.isActive ? T.successBg : T.errorBg },
               ]}>
                 <Text style={[
                   styles.statusText,
-                  { color: route.isActive ? T.success : T.error }
+                  { color: route.isActive ? T.success : T.error },
                 ]}>
-                  {route.isActive ? '● Activa' : '● Inactiva'}
+                  {route.isActive ? 'Activa' : 'Inactiva'}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* Route path */}
           <View style={styles.pathRow}>
             <View style={styles.dot} />
             <Text style={styles.pathLabel} numberOfLines={1}>{route.origin}</Text>
@@ -87,7 +84,6 @@ export function RouteCard({
             <Text style={styles.pathLabel} numberOfLines={1}>{route.destination}</Text>
           </View>
 
-          {/* Stats */}
           <View style={styles.statsRow}>
             {distanceLabel && (
               <View style={styles.stat}>
@@ -116,18 +112,24 @@ export function RouteCard({
           </View>
         </View>
 
-        {/* Favorite button */}
         {onFavoritePress && (
-          <TouchableOpacity
+          <Pressable
             style={styles.favBtn}
-            onPress={onFavoritePress}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onFavoritePress();
+            }}
             hitSlop={8}
-            activeOpacity={0.7}
           >
-            <Text style={styles.favIcon}>{isFavorite ? '⭐' : '☆'}</Text>
-          </TouchableOpacity>
+            <Star
+              size={18}
+              strokeWidth={2}
+              color={isFavorite ? T.highlight : T.textTertiary}
+              fill={isFavorite ? T.highlight : 'transparent'}
+            />
+          </Pressable>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -135,96 +137,49 @@ export function RouteCard({
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: T.surface,
-    borderRadius: Sizes.radiusLg,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
     marginBottom: Sizes.gapMd,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    ...Shadows.sm,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
   },
-  colorBar: {
-    width: 5,
-    backgroundColor: T.primary,
-  },
-  content: {
-    flex: 1,
-    padding: Sizes.paddingMd,
-    gap: 6,
-  },
+  colorBar: { width: 5 },
+  content: { flex: 1, padding: Sizes.paddingMd, gap: 6 },
   headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 4,
   },
-  icon: { fontSize: 18 },
   name: {
-    ...Typography.h4,
-    color: T.textPrimary,
-    fontSize: 15,
-    flex: 1,
+    ...Typography.body, color: T.textPrimary, fontWeight: '700', flex: 1,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  pathRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  statusText: { ...Typography.caption, fontWeight: '700' },
+  pathRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: T.primary,
-    marginLeft: 2,
+    width: 8, height: 8, borderRadius: 4,
+    backgroundColor: T.primary, marginLeft: 2,
+    ...Shadows.xs,
   },
   pathLine: {
-    width: 1,
-    height: 12,
-    backgroundColor: T.divider,
-    marginLeft: 6,
+    width: 1, height: 12, backgroundColor: T.divider, marginLeft: 6,
   },
   pathLabel: {
-    ...Typography.bodySm,
-    color: T.textSecondary,
-    flex: 1,
+    ...Typography.bodySm, color: T.textSecondary, flex: 1,
   },
   statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 4,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: T.divider,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginTop: 4, paddingTop: 8,
+    borderTopWidth: 1, borderTopColor: T.divider,
   },
   stat: { alignItems: 'center' },
-  statValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: T.textTertiary,
-  },
+  statValue: { ...Typography.h4, color: T.textPrimary, fontSize: 15 },
+  statLabel: { ...Typography.caption, color: T.textTertiary },
   statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: T.divider,
+    width: 1, height: 24, backgroundColor: T.divider,
   },
   favBtn: {
-    padding: Sizes.paddingMd,
-    justifyContent: 'center',
-    alignItems: 'center',
+    padding: Sizes.paddingMd, justifyContent: 'center', alignItems: 'center',
   },
-  favIcon: { fontSize: 20 },
 });

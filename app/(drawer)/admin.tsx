@@ -1,7 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity,
+  View, Text, StyleSheet, ActivityIndicator, TouchableOpacity,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useExpressAuthStore } from '@/services/express/express-auth.store';
 import { useManagedUsers } from '@/features/admin/application/user-management.hooks';
 import { UserRow } from '@/features/admin/presentation/user-row';
@@ -12,12 +13,12 @@ import { ConfirmDialog } from '@/features/admin/presentation/confirm-dialog';
 import type { ManagedUser, CreateManagedUserInput } from '@/features/admin/domain/user-management.entity';
 import { useAuthStore } from '@/store/auth.store';
 import { ExpressLoginForm } from '@/features/admin/presentation/express-login-form';
-import { DarkTheme as T } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { RoleGuard } from '@/core/guards/role.guard';
 import { BusRoutesAdmin } from '@/features/polibus/presentation/bus-routes-admin';
 import { EventsAdmin } from '@/features/events/presentation/events-admin';
 import { AulasAdmin } from '@/features/aulas/presentation/aulas-admin';
-import { Lock, RefreshCw } from 'lucide-react-native';
+import { Lock, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { FilePicker } from '@/features/bulk-upload/presentation/file-picker';
 import { PreviewTable } from '@/features/bulk-upload/presentation/preview-table';
 import { UploadReport } from '@/features/bulk-upload/presentation/upload-report';
@@ -119,10 +120,10 @@ export default function AdminUsersScreen() {
           <Text style={[styles.tabText, activeTab === 'eventos' && styles.tabTextActive]}>Eventos</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'aulas' && styles.tabActive]} onPress={() => setActiveTab('aulas')}>
-          <Text style={[styles.tabText, activeTab === 'aulas' && styles.tabTextActive]}>📚 Aulas</Text>
+          <Text style={[styles.tabText, activeTab === 'aulas' && styles.tabTextActive]}>Aulas</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'carga' && styles.tabActive]} onPress={() => setActiveTab('carga')}>
-          <Text style={[styles.tabText, activeTab === 'carga' && styles.tabTextActive]}>📤 Carga</Text>
+          <Text style={[styles.tabText, activeTab === 'carga' && styles.tabTextActive]}>Carga</Text>
         </TouchableOpacity>
       </View>
 
@@ -132,7 +133,7 @@ export default function AdminUsersScreen() {
       {activeTab === 'carga' && (
         <View style={styles.bulkContainer}>
           {bulk.phase === 'error' && bulk.errorMessage && (
-            <View style={styles.errorBanner}><Text style={styles.errorBannerText}>⚠ {bulk.errorMessage}</Text></View>
+            <View style={styles.errorBanner}><Text style={styles.errorBannerText}>{bulk.errorMessage}</Text></View>
           )}
           {bulk.phase === 'uploading' && (
             <View style={styles.uploadingBanner}>
@@ -152,7 +153,7 @@ export default function AdminUsersScreen() {
         </View>
       )}
       {activeTab === 'usuarios' && (
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minHeight: 0 }}>
 
       {isError && (
         <View style={styles.errorBanner}>
@@ -162,9 +163,7 @@ export default function AdminUsersScreen() {
 
       {updateUser.isError && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>
-            Error al actualizar: {(updateUser.error as Error)?.message ?? 'Intenta de nuevo'}
-          </Text>
+          <Text style={styles.errorBannerText}>Error al actualizar: {(updateUser.error as Error)?.message ?? 'Intenta de nuevo'}</Text>
         </View>
       )}
 
@@ -198,7 +197,7 @@ export default function AdminUsersScreen() {
         <ActivityIndicator size="large" color={T.primary} style={styles.loader} />
       )}
 
-      <FlatList
+      <FlashList
         data={users}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
@@ -218,10 +217,6 @@ export default function AdminUsersScreen() {
             </View>
           ) : null
         }
-        removeClippedSubviews
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        initialNumToRender={10}
       />
 
       {totalPages > 1 && (
@@ -232,7 +227,7 @@ export default function AdminUsersScreen() {
             disabled={page <= 1}
             activeOpacity={0.7}
           >
-            <Text style={styles.pageBtnText}>←</Text>
+            <ChevronLeft size={18} strokeWidth={2} color={page <= 1 ? T.textMuted : T.primary} />
           </TouchableOpacity>
           <Text style={styles.pageInfo}>
             {page} de {totalPages}
@@ -243,7 +238,7 @@ export default function AdminUsersScreen() {
             disabled={page >= totalPages}
             activeOpacity={0.7}
           >
-            <Text style={styles.pageBtnText}>→</Text>
+            <ChevronRight size={18} strokeWidth={2} color={page >= totalPages ? T.textMuted : T.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -287,162 +282,99 @@ const styles = StyleSheet.create({
     backgroundColor: T.background,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    paddingBottom: 8,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: Sizes.paddingMd, paddingTop: 56, paddingBottom: 12,
+    backgroundColor: T.surfaceGlass,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
   },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   createBtn: {
-    backgroundColor: T.primary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    paddingHorizontal: 18, paddingVertical: 11,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
   },
   createBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: T.text,
+    ...Typography.caption, fontWeight: '700', color: '#FFFFFF',
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: T.textPrimary,
-  },
+  title: { ...Typography.h2, color: T.textPrimary },
   tabsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: T.cardBorder,
-    marginBottom: 10,
+    flexDirection: 'row', paddingHorizontal: Sizes.paddingMd,
+    paddingBottom: 14,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
+    marginBottom: 12, gap: 6,
+    backgroundColor: T.surfaceGlass,
   },
   tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
+    paddingVertical: 10, paddingHorizontal: 16,
+    borderRadius: Sizes.radiusFull,
     backgroundColor: T.surface,
+    borderWidth: 1, borderColor: T.cardBorder,
   },
   tabActive: {
-    backgroundColor: T.primary,
+    backgroundColor: T.primary, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
   },
-  tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
-  tabTextActive: {
-    color: T.text,
-  },
+  tabText: { ...Typography.caption, fontWeight: '600', color: T.textSecondary },
+  tabTextActive: { color: '#FFFFFF' },
   refreshBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: T.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: T.surfaceGlass,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
   },
   refreshText: {
     fontSize: 18,
     color: T.primary,
   },
   errorBanner: {
-    marginHorizontal: 16,
-    marginBottom: 8,
-    backgroundColor: T.errorBg,
-    borderRadius: 8,
-    padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: T.error,
+    marginHorizontal: Sizes.paddingMd, marginBottom: 10,
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 3, borderLeftColor: T.error,
   },
-  errorBannerText: {
-    color: T.error,
-    fontSize: 12,
-  },
-  filtersContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  loader: {
-    marginTop: 20,
-  },
-  list: {
-    padding: 16,
-    paddingTop: 8,
-  },
-  empty: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: T.textSecondary,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 16,
-    padding: 12,
-    backgroundColor: T.surface,
-    borderTopWidth: 1,
-    borderTopColor: T.cardBorder,
-  },
-  pageBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: T.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-  },
-  pageBtnDisabled: {
-    opacity: 0.4,
-  },
-  pageBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: T.primary,
-  },
-  pageInfo: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
+  errorBannerText: { ...Typography.bodySm, color: T.error },
+  filtersContainer: { paddingHorizontal: Sizes.paddingMd, paddingBottom: 10 },
+  loader: { marginTop: 40 },
+  list: { padding: Sizes.paddingMd, paddingTop: 8 },
+  empty: { alignItems: 'center', paddingVertical: 60, gap: 8 },
+  emptyText: { ...Typography.body, color: T.textSecondary },
   authContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-    backgroundColor: T.background,
-    gap: 16,
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    padding: Sizes.paddingXl, backgroundColor: T.background, gap: 20,
   },
-  authTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
+  authTitle: { ...Typography.h2, color: T.textPrimary },
   authDesc: {
-    fontSize: 14,
-    color: T.textSecondary,
-    textAlign: 'center',
+    ...Typography.body, color: T.textSecondary,
+    textAlign: 'center', maxWidth: 300, lineHeight: 22,
   },
   gate: {
     flex: 1, justifyContent: 'center', alignItems: 'center',
-    padding: 24, backgroundColor: T.background, gap: 12,
+    padding: Sizes.paddingXl, backgroundColor: T.background, gap: 16,
   },
-  gateIcon: { fontSize: 48 },
-  gateTitle: { fontSize: 20, fontWeight: '700', color: T.textPrimary },
-  gateDesc: { fontSize: 14, color: T.textSecondary, textAlign: 'center' },
-  bulkContainer: { flex: 1, padding: 16, gap: 16 },
-  uploadingBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: 'rgba(0,51,160,0.08)', borderRadius: 10, padding: 12 },
-  uploadingText: { fontSize: 14, color: T.primary, fontWeight: '600' },
+  gateTitle: { ...Typography.h2, color: T.textPrimary },
+  gateDesc: {
+    ...Typography.body, color: T.textSecondary,
+    textAlign: 'center', maxWidth: 280, lineHeight: 22,
+  },
+  pagination: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    gap: 18, padding: 14,
+    backgroundColor: T.surfaceGlass,
+    borderTopWidth: 1, borderTopColor: T.divider,
+  },
+  pageBtn: {
+    width: 42, height: 42, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.surface, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  pageBtnDisabled: { opacity: 0.35 },
+  pageInfo: { ...Typography.bodySm, fontWeight: '600', color: T.textSecondary },
+  bulkContainer: { flex: 1, padding: Sizes.paddingMd, gap: 16 },
+  uploadingBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: T.primaryMuted, borderRadius: Sizes.radiusSm,
+    padding: 14, borderWidth: 1, borderColor: T.primary + '20',
+  },
+  uploadingText: { ...Typography.body, color: T.primary, fontWeight: '600' },
 });

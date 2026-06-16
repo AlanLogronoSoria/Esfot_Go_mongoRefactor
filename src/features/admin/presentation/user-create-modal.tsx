@@ -7,7 +7,7 @@ import {
 import { useState, useCallback, useEffect } from 'react';
 import { z } from 'zod';
 import type { CreateManagedUserInput, ManagedUserType, ManagedUserRole } from '../domain/user-management.entity';
-import { DarkTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const createUserSchema = z.object({
   nombre: z.string().min(2, 'Mínimo 2 caracteres').max(60, 'Máximo 60 caracteres'),
@@ -205,24 +205,39 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 16, borderBottomWidth: 1, borderBottomColor: T.cardBorder,
-    backgroundColor: T.surface,
+    padding: 16, borderBottomWidth: 1, borderBottomColor: T.divider,
+    backgroundColor: T.surfaceGlass,
   },
   title: { ...Typography.h4, color: T.textPrimary },
-  cancelText: { fontSize: 15, color: T.textSecondary },
-  saveText: { fontSize: 15, fontWeight: '700', color: T.primary },
+  cancelText: { ...Typography.body, color: T.textSecondary },
+  saveText: { ...Typography.body, fontWeight: '700', color: T.primary },
   form: { padding: 16, gap: 18, paddingBottom: 40 },
-  errorBanner: { backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm, padding: 12, borderLeftWidth: 3, borderLeftColor: T.error },
-  errorText: { color: T.error, fontSize: 13 },
+  errorBanner: {
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 3, borderLeftColor: T.error,
+  },
+  errorText: { ...Typography.bodySm, color: T.error },
   field: { gap: 5 },
-  label: { fontSize: 12, fontWeight: '600', color: T.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: Sizes.radiusMd, padding: 14, fontSize: 15, color: T.inputText },
+  label: { ...Typography.overline, color: T.textSecondary },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 14, fontSize: 15, color: T.inputText,
+  },
   inputErr: { borderColor: T.error },
-  fieldErr: { color: T.error, fontSize: 12 },
+  fieldErr: { ...Typography.caption, color: T.error },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: T.surface, borderRadius: Sizes.radiusMd, paddingHorizontal: 14, paddingVertical: 10, borderWidth: 1.5, borderColor: T.inputBorder },
-  chipOn: { backgroundColor: T.primaryMuted, borderColor: T.primary },
-  chipText: { fontSize: 14, fontWeight: '600', color: T.textSecondary },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: T.surface, borderRadius: Sizes.radiusSm,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1.5, borderColor: T.inputBorder,
+    ...Shadows.sm,
+  },
+  chipOn: {
+    backgroundColor: T.primaryMuted, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.15,
+  },
+  chipText: { ...Typography.bodySm, fontWeight: '600', color: T.textSecondary },
   chipTextOn: { color: T.primary },
   roleDot: { width: 10, height: 10, borderRadius: 5 },
 });

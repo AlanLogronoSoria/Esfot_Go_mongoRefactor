@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Alert, TextInput,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Platform,
 } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Marker, Polygon } from 'react-native-maps';
+import { FlashList } from '@shopify/flash-list';
+import Toast from 'react-native-toast-message';
+import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker, Polygon } from 'react-native-maps';
 import type { MapRegion } from '@/features/map/domain/coordinates';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { LocationMarker } from '@/features/map/presentation/markers';
@@ -14,10 +16,12 @@ import { GraphAdmin } from '@/features/graph/presentation/graph-admin';
 import type { PoiInput, PoiUpdateInput, RestrictedZone } from '@/features/admin/domain/poi.entity';
 import { useAuthStore } from '@/store/auth.store';
 import { RoleGuard } from '@/core/guards/role.guard';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 import { Lock, Map, Bus, Edit2, Trash2, RefreshCw, AlertTriangle, Network } from 'lucide-react-native';
 
 type AdminTab = 'mapa' | 'rutas' | 'zonas' | 'grafos';
+
+const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 
 const EPN_REGION: MapRegion = {
   latitude: -0.2095, longitude: -78.4905,
@@ -106,7 +110,7 @@ export default function AdminMapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={MAP_PROVIDER}
         initialRegion={EPN_REGION}
         onPress={handleMapPress}
         showsUserLocation
@@ -184,7 +188,7 @@ export default function AdminMapScreen() {
           <PoiEventCounter />
         </View>
 
-        <FlatList
+        <FlashList
           data={pois}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
@@ -290,7 +294,7 @@ function ZonePanel({ zones, zLoading, createZone, updateZone, deleteZone }: {
   const handleSubmit = () => {
     if (!zName.trim() || !zCoords.trim()) return;
     let coords: { latitude: number; longitude: number }[];
-    try { coords = JSON.parse(zCoords); } catch { Alert.alert('Error', 'Coordenadas inválidas. Usa JSON: [{"latitude":-0.21,"longitude":-78.49}]'); return; }
+    try { coords = JSON.parse(zCoords); } catch { Toast.show({ type: 'error', text1: 'Error', text2: 'Coordenadas inválidas' }); return; }
     if (editTarget) {
       updateZone.mutateAsync({ id: editTarget.id, input: { name: zName.trim(), description: zDesc || undefined, coordinates: coords, fillColor: zFill, strokeColor: zStroke } }).then(resetForm);
     } else {
@@ -357,66 +361,78 @@ function ZonePanel({ zones, zLoading, createZone, updateZone, deleteZone }: {
 }
 
 const ecStyles = StyleSheet.create({
-  badge: { backgroundColor: T.infoBg, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 },
+  badge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: T.infoBg, borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
   text: { fontSize: 11, fontWeight: '700', color: T.info },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.background },
-  tabBar: { flexDirection: 'row', padding: 12, paddingBottom: 0, gap: 8 },
-  tab: { flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: T.surface, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder },
-  tabActive: { backgroundColor: T.primaryMuted, borderColor: T.primary },
-  tabText: { fontSize: 14, fontWeight: '600', color: T.textSecondary },
+  tabBar: {
+    flexDirection: 'row', padding: 12, paddingBottom: 0, gap: 8,
+    backgroundColor: T.surfaceGlass,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
+  },
+  tab: {
+    flex: 1, paddingVertical: 14, borderRadius: Sizes.radiusMd,
+    backgroundColor: T.surface, alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  tabActive: {
+    backgroundColor: T.primaryMuted, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.15,
+  },
+  tabText: { fontSize: 12, fontWeight: '600', color: T.textSecondary, marginTop: 4 },
   tabTextActive: { color: T.primary },
   map: { flex: 1 },
   toolbar: {
     position: 'absolute',
-    top: 12,
-    left: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    top: 12, left: 12, right: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
     zIndex: 100,
   },
   toolbarBtn: {
-    backgroundColor: T.surface,
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    ...Shadows.sm,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusFull,
+    paddingHorizontal: 14, paddingVertical: 8,
+    ...Shadows.md,
+    borderWidth: 1, borderColor: T.cardBorder,
   },
-  toolbarBtnActive: { backgroundColor: T.primary },
-  toolbarBtnText: { fontSize: 13, fontWeight: '700', color: T.textPrimary },
-  toolbarBtnTextActive: { color: T.surface },
-  hint: { fontSize: 11, color: T.textSecondary, flex: 1 },
+  toolbarBtnActive: { backgroundColor: T.primary, borderColor: T.primary },
+  toolbarBtnText: { ...Typography.caption, fontWeight: '700', color: T.textPrimary },
+  toolbarBtnTextActive: { color: '#FFFFFF' },
+  hint: { ...Typography.caption, color: T.textSecondary, flex: 1 },
   loader: { position: 'absolute', top: '50%', alignSelf: 'center' },
   panel: {
-    backgroundColor: T.surface,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 14,
-    maxHeight: 200,
-    ...Shadows.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: T.surfaceGlass,
+    borderTopLeftRadius: Sizes.radiusXl,
+    borderTopRightRadius: Sizes.radiusXl,
+    padding: 16,
+    maxHeight: 220,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
-  panelHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  panelTitle: { fontSize: 15, fontWeight: '700', color: T.textPrimary },
+  panelHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 8,
+  },
+  panelTitle: { ...Typography.h4, color: T.textPrimary },
   poiList: { maxHeight: 140 },
   poiItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center',
+    padding: 12, borderRadius: Sizes.radiusSm,
     marginBottom: 4,
-    backgroundColor: T.inputBg,
+    backgroundColor: T.background,
     justifyContent: 'space-between',
+    borderWidth: 1, borderColor: T.cardBorder,
   },
-  poiItemSelected: { backgroundColor: T.infoBg, borderWidth: 1, borderColor: T.info },
+  poiItemSelected: {
+    backgroundColor: T.infoBg, borderColor: T.info,
+  },
   poiItemContent: { flex: 1 },
   poiItemName: { fontSize: 13, fontWeight: '600', color: T.textPrimary },
   poiItemCat: { fontSize: 10, color: T.textTertiary },
@@ -429,55 +445,80 @@ const styles = StyleSheet.create({
     zIndex: 200,
   },
   formCard: {
-    backgroundColor: T.surface,
-    borderTopLeftRadius: 22,
-    borderTopRightRadius: 22,
-    padding: 20,
-    paddingTop: 14,
-    gap: 10,
-    ...Shadows.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 12,
+    backgroundColor: T.surfaceGlass,
+    borderTopLeftRadius: Sizes.radiusXl,
+    borderTopRightRadius: Sizes.radiusXl,
+    padding: 20, paddingTop: 14, gap: 10,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
-  deletePoiBtn: { padding: 12, borderRadius: 10, backgroundColor: T.errorBg, alignItems: 'center', marginTop: 4 },
+  deletePoiBtn: {
+    padding: 14, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.errorBg, alignItems: 'center', marginTop: 4,
+    borderWidth: 1, borderColor: T.error + '25',
+  },
   deletePoiText: { fontSize: 14, fontWeight: '600', color: T.error },
   zoneContainer: { flex: 1 },
 });
 
 const zoneStyles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 10 },
+  container: { flex: 1, padding: 16, gap: 12, backgroundColor: T.background },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { fontSize: 20, fontWeight: '800', color: T.textPrimary },
-  addBtn: { backgroundColor: T.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: T.text },
-  card: { backgroundColor: T.surface, borderRadius: 14, padding: 14, ...Shadows.sm },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  colorDot: { width: 14, height: 14, borderRadius: 7 },
-  cardName: { fontSize: 15, fontWeight: '700', color: T.textPrimary },
-  cardDesc: { fontSize: 12, color: T.textSecondary, marginTop: 2 },
-  cardMeta: { fontSize: 11, color: T.textTertiary, marginTop: 2 },
-  editIcon: { fontSize: 18, paddingHorizontal: 4 },
-  deleteIcon: { fontSize: 18, paddingHorizontal: 4 },
-  empty: { textAlign: 'center', color: T.textSecondary, marginTop: 20, fontSize: 14 },
-  formCard: { backgroundColor: T.surface, borderRadius: 14, padding: 14, gap: 10, ...Shadows.md },
-  formTitle: { fontSize: 16, fontWeight: '700', color: T.textPrimary, marginBottom: 4 },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: 10, padding: 12, fontSize: 14, color: T.inputText },
+  title: { ...Typography.h3, color: T.textPrimary },
+  addBtn: {
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    paddingHorizontal: 16, paddingVertical: 10,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
+  addBtnText: { ...Typography.caption, fontWeight: '700', color: '#FFFFFF' },
+  card: {
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
+    padding: 16, ...Shadows.md, borderWidth: 1, borderColor: T.cardBorder,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  colorDot: {
+    width: 16, height: 16, borderRadius: 8,
+    borderWidth: 2, borderColor: '#FFFFFF', ...Shadows.xs,
+  },
+  cardName: { ...Typography.body, color: T.textPrimary, fontWeight: '700' },
+  cardDesc: { ...Typography.caption, color: T.textSecondary, marginTop: 2 },
+  cardMeta: { ...Typography.caption, color: T.textTertiary, marginTop: 2 },
+  empty: {
+    textAlign: 'center', color: T.textSecondary,
+    marginTop: 20, ...Typography.body,
+  },
+  formCard: {
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
+    padding: 16, gap: 10, borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
+  },
+  formTitle: { ...Typography.h4, color: T.textPrimary, marginBottom: 2 },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 12,
+    fontSize: 14, color: T.inputText,
+  },
   textarea: { minHeight: 80 },
   row: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  saveBtn: { flex: 1, backgroundColor: T.primary, borderRadius: 10, padding: 14, alignItems: 'center' },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: T.text },
-  cancelBtn: { flex: 1, backgroundColor: T.surface, borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder },
-  cancelBtnText: { fontSize: 14, color: T.textSecondary },
+  saveBtn: {
+    flex: 1, backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 14, alignItems: 'center', ...Shadows.sm,
+  },
+  saveBtnText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
+  cancelBtn: {
+    flex: 1, backgroundColor: T.surface, borderRadius: Sizes.radiusSm,
+    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder,
+  },
+  cancelBtnText: { ...Typography.body, color: T.textSecondary, fontWeight: '600' },
 });
 
 const gateStyles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: T.background, gap: 12 },
-  icon: { fontSize: 48 },
-  title: { fontSize: 20, fontWeight: '700', color: T.textPrimary },
-  desc: { fontSize: 14, color: T.textSecondary, textAlign: 'center' },
+  container: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    padding: 32, backgroundColor: T.background, gap: 16,
+  },
+  title: { ...Typography.h3, color: T.textPrimary },
+  desc: { ...Typography.body, color: T.textSecondary, textAlign: 'center' },
 });

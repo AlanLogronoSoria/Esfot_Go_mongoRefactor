@@ -36,6 +36,9 @@ import type {
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'expo-router';
 import { AppError } from '@/core/errors/app-error';
+import * as Haptics from 'expo-haptics';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
+import { Check } from 'lucide-react-native';
 
 type Step = 1 | 2 | 3;
 type RegisterRole = 'estudiante' | 'docente';
@@ -537,7 +540,7 @@ function Step3Profile({
             onPress={() => onChange(!value)}
           >
             <View style={[styles.checkbox, value && styles.checkboxChecked]}>
-              {value && <Text style={styles.checkmark}>✓</Text>}
+              {value && <Check size={14} strokeWidth={3} color="#FFFFFF" />}
             </View>
             <Text style={styles.termsText}>
               Acepto los{' '}
@@ -585,19 +588,13 @@ function Step3Profile({
 // ─── Styles ───
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 24,
-  },
+  container: { gap: 24 },
   progressContainer: {
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-    overflow: 'hidden',
+    height: 4, backgroundColor: T.surfaceBorder,
+    borderRadius: 2, overflow: 'hidden',
   },
   progressBar: {
-    height: '100%',
-    backgroundColor: '#00205B',
-    borderRadius: 2,
+    height: '100%', backgroundColor: T.primary, borderRadius: 2,
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -605,229 +602,115 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#D1D5DB',
+    width: 8, height: 8, borderRadius: 4, backgroundColor: T.textMuted,
   },
-  stepDotActive: {
-    backgroundColor: '#00205B',
-    width: 24,
-  },
-  stepDotCompleted: {
-    backgroundColor: '#059669',
-  },
+  stepDotActive: { backgroundColor: T.primary, width: 24 },
+  stepDotCompleted: { backgroundColor: T.success },
 
-  stepHeader: {
-    gap: 4,
-  },
-  stepTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
+  stepHeader: { gap: 4 },
+  stepTitle: { ...Typography.h2, color: T.textPrimary },
   stepSubtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
+    ...Typography.body, color: T.textSecondary, lineHeight: 20,
   },
 
-  stepContent: {
-    minHeight: 280,
-  },
-  stepForm: {
-    gap: 20,
-  },
+  stepContent: { minHeight: 280 },
+  stepForm: { gap: 20 },
 
-  field: {
-    gap: 6,
-  },
+  field: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    ...Typography.bodySm, fontWeight: '600', color: T.textPrimary,
   },
   input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 16,
+    fontSize: 15, color: T.inputText,
   },
-  inputError: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEF2F2',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-    marginTop: 2,
-  },
+  inputError: { borderColor: T.error, backgroundColor: T.errorBg },
+  errorText: { ...Typography.caption, color: T.error, marginTop: 2 },
 
   domainBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EFF6FF',
-    borderRadius: 8,
-    padding: 12,
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: T.primaryMuted, borderRadius: Sizes.radiusSm,
+    padding: 12, gap: 8,
   },
-  domainBadgeText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#1B6BB0',
-  },
-  domainBadgeHint: {
-    fontSize: 12,
-    color: '#6B7280',
-  },
+  domainBadgeText: { ...Typography.bodySm, fontWeight: '700', color: T.primary },
+  domainBadgeHint: { ...Typography.caption, color: T.textSecondary },
 
   strengthContainer: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: T.surface, borderRadius: Sizes.radiusMd,
+    padding: 16, borderWidth: 1, borderColor: T.cardBorder,
     gap: 10,
   },
   strengthBarBg: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
+    height: 6, backgroundColor: T.surfaceBorder,
+    borderRadius: 3, overflow: 'hidden',
   },
-  strengthBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  strengthLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  checksGrid: {
-    gap: 6,
-  },
+  strengthBarFill: { height: '100%', borderRadius: 3 },
+  strengthLabel: { ...Typography.bodySm, fontWeight: '700', textAlign: 'center' },
+  checksGrid: { gap: 6 },
   checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
-  checkDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  checkDotPassed: {
-    backgroundColor: '#10B981',
-  },
-  checkDotFailed: {
-    backgroundColor: '#D1D5DB',
-  },
-  checkLabel: {
-    fontSize: 12,
-  },
-  checkLabelPassed: {
-    color: '#059669',
-  },
-  checkLabelFailed: {
-    color: '#9CA3AF',
-  },
+  checkDot: { width: 6, height: 6, borderRadius: 3 },
+  checkDotPassed: { backgroundColor: T.success },
+  checkDotFailed: { backgroundColor: T.textMuted },
+  checkLabel: { fontSize: 12 },
+  checkLabelPassed: { color: T.success },
+  checkLabelFailed: { color: T.textTertiary },
 
   termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 4,
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: 10, paddingVertical: 4,
   },
   checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#D1D5DB',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: T.inputBorder,
+    justifyContent: 'center', alignItems: 'center',
     marginTop: 2,
   },
   checkboxChecked: {
-    backgroundColor: '#00205B',
-    borderColor: '#00205B',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
+    backgroundColor: T.primary, borderColor: T.primary,
   },
   termsText: {
-    flex: 1,
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
+    flex: 1, fontSize: 13, color: T.textSecondary, lineHeight: 18,
   },
-  termsLink: {
-    color: '#1B6BB0',
-    fontWeight: '600',
-  },
+  termsLink: { color: T.primary, fontWeight: '600' },
 
-  stepActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
-  },
+  stepActions: { flexDirection: 'row', gap: 12, marginTop: 8 },
   primaryButton: {
-    flex: 1,
-    backgroundColor: '#00205B',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
+    flex: 1, backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonHalf: {
-    flex: 1,
-  },
-  primaryButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+  buttonHalf: { flex: 1 },
+  primaryButtonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
+  buttonDisabled: { opacity: 0.5 },
   secondaryButton: {
-    padding: 16,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    alignItems: 'center',
+    padding: 16, borderRadius: Sizes.radiusSm,
+    borderWidth: 1.5, borderColor: T.inputBorder,
+    alignItems: 'center', backgroundColor: T.surface,
   },
   secondaryButtonText: {
-    color: '#374151',
-    fontSize: 16,
-    fontWeight: '600',
+    ...Typography.body, color: T.textSecondary, fontWeight: '600',
   },
 
   roleRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
   roleChip: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#D1D5DB',
-    alignItems: 'center', backgroundColor: '#F9FAFB',
+    flex: 1, paddingVertical: 11, borderRadius: Sizes.radiusSm,
+    borderWidth: 1.5, borderColor: T.inputBorder,
+    alignItems: 'center', backgroundColor: T.surface,
+    ...Shadows.sm,
   },
-  roleChipActive: { borderColor: '#00205B', backgroundColor: '#EFF6FF' },
-  roleChipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  roleChipTextActive: { color: '#00205B' },
+  roleChipActive: {
+    borderColor: T.primary, backgroundColor: T.primaryMuted,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.15,
+  },
+  roleChipText: { ...Typography.bodySm, fontWeight: '600', color: T.textSecondary },
+  roleChipTextActive: { color: T.primary },
 
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 10,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.error,
   },
-  errorBannerText: {
-    color: '#991B1B',
-    fontSize: 14,
-    lineHeight: 20,
-  },
+  errorBannerText: { ...Typography.bodySm, color: T.error, lineHeight: 20 },
 });

@@ -1,6 +1,13 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { Link } from 'expo-router';
+import { MapPin, ChevronRight } from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 interface LocationCardProps {
@@ -15,40 +22,56 @@ const CAMPUS_BUILDINGS = [
 ];
 
 export function LocationCard({ location }: LocationCardProps) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 24, stiffness: 360 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 20, stiffness: 300 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   return (
     <Link href="/map" asChild>
-      <TouchableOpacity style={styles.card} activeOpacity={0.9}>
-        <View style={styles.header}>
-          <View style={styles.iconWrap}>
-            <Text style={styles.icon}>📍</Text>
-          </View>
-          <View style={styles.info}>
-            <Text style={styles.title}>
-              {location ? 'Tu ubicacion' : 'Campus EPN'}
-            </Text>
-            <Text style={styles.subtitle}>
-              {location
-                ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
-                : 'Explora el mapa del campus'
-              }
-            </Text>
-          </View>
-          <Text style={styles.arrow}>→</Text>
-        </View>
-
-        <View style={styles.buildingsRow}>
-          {CAMPUS_BUILDINGS.map((b) => (
-            <View key={b.code} style={styles.buildingTag}>
-              <Text style={styles.buildingName} numberOfLines={1}>{b.name}</Text>
-              <Text style={styles.buildingCode}>{b.code}</Text>
+      <Pressable onPressIn={handlePressIn} onPressOut={handlePressOut}>
+        <Animated.View style={[styles.card, animStyle]}>
+          <View style={styles.header}>
+            <View style={styles.iconWrap}>
+              <MapPin size={20} strokeWidth={2} color={T.primary} />
             </View>
-          ))}
-        </View>
+            <View style={styles.info}>
+              <Text style={styles.title}>
+                {location ? 'Tu ubicacion' : 'Campus EPN'}
+              </Text>
+              <Text style={styles.subtitle}>
+                {location
+                  ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+                  : 'Explora el mapa del campus'
+                }
+              </Text>
+            </View>
+            <ChevronRight size={20} strokeWidth={2} color={T.textTertiary} />
+          </View>
 
-        <View style={styles.mapBar}>
-          <Text style={styles.mapBarText}>Ver mapa del campus</Text>
-        </View>
-      </TouchableOpacity>
+          <View style={styles.buildingsRow}>
+            {CAMPUS_BUILDINGS.map((b) => (
+              <View key={b.code} style={styles.buildingTag}>
+                <Text style={styles.buildingName} numberOfLines={1}>{b.name}</Text>
+                <Text style={styles.buildingCode}>{b.code}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.mapBar}>
+            <Text style={styles.mapBarText}>Ver mapa del campus</Text>
+          </View>
+        </Animated.View>
+      </Pressable>
     </Link>
   );
 }
@@ -60,13 +83,13 @@ const styles = StyleSheet.create({
     padding: Sizes.paddingLg,
     borderWidth: 1,
     borderColor: T.cardBorder,
-    ...Shadows.sm,
+    ...Shadows.md,
     gap: Sizes.gapMd,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   iconWrap: {
     width: 44,
@@ -76,11 +99,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon: { fontSize: 20 },
   info: { flex: 1 },
   title: { ...Typography.h4, color: T.textPrimary },
   subtitle: { ...Typography.bodySm, color: T.textSecondary },
-  arrow: { fontSize: 20, color: T.textTertiary },
   buildingsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -89,11 +110,11 @@ const styles = StyleSheet.create({
   buildingTag: {
     backgroundColor: T.neutralMuted,
     borderRadius: Sizes.radiusSm,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   buildingName: {
     fontSize: 11,
@@ -105,11 +126,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: T.primary,
+    letterSpacing: 0.5,
   },
   mapBar: {
     backgroundColor: T.primaryMuted,
     borderRadius: Sizes.radiusSm,
-    padding: Sizes.paddingSm,
+    padding: 14,
     alignItems: 'center',
   },
   mapBarText: {

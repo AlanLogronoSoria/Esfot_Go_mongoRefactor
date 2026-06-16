@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { ScrollView, Pressable, Text, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { EventDateFilter } from '../domain/event.entity';
-import { LightTheme as T, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows } from '@/constants/design-system';
 
 interface EventFiltersProps {
   dateFilter: EventDateFilter;
@@ -19,14 +20,16 @@ export const EventFilters = memo(function EventFilters({ dateFilter, onDateFilte
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 44 }} contentContainerStyle={ss.c}>
       {FILTERS.map((f) => (
-        <TouchableOpacity
+        <Pressable
           key={f.key}
           style={[ss.chip, dateFilter === f.key && ss.chipOn]}
-          onPress={() => onDateFilterChange(f.key)}
-          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onDateFilterChange(f.key);
+          }}
         >
           <Text style={[ss.ct, dateFilter === f.key && ss.ctOn]}>{f.label}</Text>
-        </TouchableOpacity>
+        </Pressable>
       ))}
     </ScrollView>
   );
@@ -34,8 +37,16 @@ export const EventFilters = memo(function EventFilters({ dateFilter, onDateFilte
 
 const ss = StyleSheet.create({
   c: { gap: 8, paddingHorizontal: 16 },
-  chip: { backgroundColor: T.surface, borderRadius: Sizes.radiusFull, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: T.cardBorder },
-  chipOn: { backgroundColor: T.primary, borderColor: T.primary },
+  chip: {
+    backgroundColor: T.surface, borderRadius: Sizes.radiusFull,
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  chipOn: {
+    backgroundColor: T.primary, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
+  },
   ct: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
-  ctOn: { color: T.text },
+  ctOn: { color: '#FFFFFF' },
 });

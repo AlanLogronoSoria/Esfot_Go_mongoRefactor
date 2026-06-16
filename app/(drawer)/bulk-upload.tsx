@@ -3,11 +3,12 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, SafeAreaView,
 } from 'react-native';
 import { RoleGuard } from '@/core/guards/role.guard';
-import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { useBulkUpload } from '@/features/bulk-upload/application/bulk-upload.hooks';
 import { FilePicker } from '@/features/bulk-upload/presentation/file-picker';
 import { PreviewTable } from '@/features/bulk-upload/presentation/preview-table';
 import { UploadReport } from '@/features/bulk-upload/presentation/upload-report';
+import { Lock } from 'lucide-react-native';
 
 export default function BulkUploadScreen() {
   const {
@@ -18,7 +19,7 @@ export default function BulkUploadScreen() {
   return (
     <RoleGuard allowedRoles={['administrador', 'gestor']} fallback={
       <View style={styles.gate}>
-        <Text style={styles.gateIcon}>🔒</Text>
+        <Lock size={48} strokeWidth={1.5} color={T.textSecondary} />
         <Text style={styles.gateTitle}>Acceso restringido</Text>
         <Text style={styles.gateDesc}>Solo los administradores pueden cargar datos masivos.</Text>
       </View>
@@ -30,7 +31,7 @@ export default function BulkUploadScreen() {
             <Text style={styles.subtitle}>Importa usuarios o ubicaciones desde un archivo CSV o Excel</Text>
           </View>
           {phase === 'error' && errorMessage && (
-            <View style={styles.errorBanner}><Text style={styles.errorBannerText}>⚠ {errorMessage}</Text></View>
+            <View style={styles.errorBanner}><Text style={styles.errorBannerText}>{errorMessage}</Text></View>
           )}
           {phase === 'uploading' && (
             <View style={styles.uploadingBanner}>
@@ -57,15 +58,29 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: T.background },
   scroll: { flex: 1 },
   content: { padding: Sizes.paddingLg, gap: Sizes.gapLg, paddingBottom: 48 },
-  header: { gap: Sizes.gapXs },
+  header: {
+    gap: 6, backgroundColor: T.surfaceGlass,
+    padding: Sizes.paddingLg, borderRadius: Sizes.radiusXl,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
+  },
   title: { ...Typography.h2, color: T.textPrimary },
-  subtitle: { ...Typography.body, color: T.textSecondary },
-  gate: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: T.background, gap: 12 },
-  gateIcon: { fontSize: 48 },
+  subtitle: { ...Typography.body, color: T.textSecondary, marginTop: 2 },
+  gate: {
+    flex: 1, justifyContent: 'center', alignItems: 'center',
+    padding: 32, backgroundColor: T.background, gap: 16,
+  },
   gateTitle: { ...Typography.h3, color: T.textPrimary },
   gateDesc: { ...Typography.body, color: T.textSecondary, textAlign: 'center' },
-  errorBanner: { backgroundColor: T.errorBg, borderRadius: Sizes.radiusMd, padding: Sizes.paddingMd, borderLeftWidth: 3, borderLeftColor: T.error },
-  errorBannerText: { ...Typography.bodySm, color: T.error, fontWeight: '600' },
-  uploadingBanner: { flexDirection: 'row', alignItems: 'center', gap: Sizes.gapMd, backgroundColor: T.infoBg, borderRadius: Sizes.radiusMd, padding: Sizes.paddingMd },
-  uploadingText: { ...Typography.body, color: T.info, fontWeight: '600' },
+  errorBanner: {
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: Sizes.paddingMd, borderLeftWidth: 3, borderLeftColor: T.error,
+  },
+  errorBannerText: { ...Typography.bodySm, color: T.error },
+  uploadingBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: T.primaryMuted, borderRadius: Sizes.radiusSm,
+    padding: Sizes.paddingMd, borderWidth: 1, borderColor: T.primary + '20',
+  },
+  uploadingText: { ...Typography.body, color: T.primary, fontWeight: '600' },
 });

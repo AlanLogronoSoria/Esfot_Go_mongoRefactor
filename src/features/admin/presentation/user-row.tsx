@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
-import { View, Text, Switch, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Switch, Pressable, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { ManagedUser } from '@/features/admin/domain/user-management.entity';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 interface UserRowProps {
   user: ManagedUser;
@@ -53,20 +54,24 @@ export const UserRow = memo(function UserRow({
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity
+          <Pressable
             style={styles.editBtn}
-            onPress={() => onEdit(user)}
-            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onEdit(user);
+            }}
           >
             <Text style={styles.editBtnText}>Editar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
+          </Pressable>
+          <Pressable
             style={styles.deleteBtn}
-            onPress={() => onDelete(user)}
-            activeOpacity={0.7}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onDelete(user);
+            }}
           >
             <Text style={styles.deleteBtnText}>Eliminar</Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </View>
     </View>
@@ -75,108 +80,47 @@ export const UserRow = memo(function UserRow({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: T.surface,
-    borderRadius: 12,
-    padding: 14,
-    gap: 12,
-    marginBottom: 10,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusLg,
+    padding: 14, gap: 12, marginBottom: 10,
+    borderWidth: 1, borderColor: T.cardBorder,
     ...Shadows.sm,
   },
-  cardInactive: {
-    opacity: 0.6,
-    backgroundColor: T.inputBg,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 12,
-  },
+  cardInactive: { opacity: 0.55, backgroundColor: T.surface },
+  row: { flexDirection: 'row', gap: 12 },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 44, height: 44, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
   },
-  avatarText: {
-    color: T.surface,
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  info: {
-    flex: 1,
-    gap: 2,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  email: {
-    fontSize: 12,
-    color: T.textSecondary,
-  },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 2,
-  },
+  avatarText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  info: { flex: 1, gap: 2 },
+  name: { ...Typography.body, color: T.textPrimary, fontWeight: '700' },
+  email: { ...Typography.caption, color: T.textSecondary },
+  meta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
   roleBadge: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6,
   },
   roleBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'capitalize',
+    ...Typography.caption, fontWeight: '700', textTransform: 'capitalize',
   },
-  type: {
-    fontSize: 10,
-    color: T.textTertiary,
-    textTransform: 'capitalize',
-  },
+  type: { ...Typography.caption, color: T.textTertiary, textTransform: 'capitalize' },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: T.cardBorder,
-    paddingTop: 10,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    borderTopWidth: 1, borderTopColor: T.divider, paddingTop: 10,
   },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  switchLabel: {
-    fontSize: 12,
-    color: T.textSecondary,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  switchRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  switchLabel: { ...Typography.caption, color: T.textSecondary },
+  buttonRow: { flexDirection: 'row', gap: 8 },
   editBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: T.infoBg,
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: Sizes.radiusSm, backgroundColor: T.infoBg,
+    borderWidth: 1, borderColor: T.info + '20',
   },
-  editBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: T.info,
-  },
+  editBtnText: { ...Typography.caption, fontWeight: '600', color: T.info },
   deleteBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: T.errorBg,
+    paddingHorizontal: 14, paddingVertical: 7,
+    borderRadius: Sizes.radiusSm, backgroundColor: T.errorBg,
+    borderWidth: 1, borderColor: T.error + '20',
   },
-  deleteBtnText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: T.error,
-  },
+  deleteBtnText: { ...Typography.caption, fontWeight: '600', color: T.error },
 });

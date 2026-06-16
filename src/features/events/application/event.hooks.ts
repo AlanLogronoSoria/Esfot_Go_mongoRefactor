@@ -74,10 +74,19 @@ export function useInfiniteEvents(search?: string, dateFilter: EventDateFilter =
     gcTime: 1000 * 60 * 30,
   });
 
-  const allEvents = useMemo(
-    () => query.data?.pages.flatMap((p) => p.data) ?? [],
-    [query.data]
-  );
+  const allEvents = useMemo(() => {
+    const raw = query.data?.pages.flatMap((p) => p.data) ?? [];
+    if (isDevMode()) return raw;
+    const now = new Date().toISOString();
+    if (dateFilter === 'proximos') return raw.filter((e) => e.startDate >= now);
+    if (dateFilter === 'pasados') return raw.filter((e) => e.startDate < now);
+    if (dateFilter === 'este_mes') {
+      const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+      return raw.filter((e) => e.startDate >= startOfMonth && e.startDate <= endOfMonth);
+    }
+    return raw;
+  }, [query.data, dateFilter]);
 
   const totalCount = query.data?.pages[0]?.count ?? 0;
 

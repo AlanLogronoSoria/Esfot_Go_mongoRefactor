@@ -4,7 +4,6 @@ import {
   View,
   Text,
   TextInput as RNTextInput,
-  TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Pressable,
@@ -14,7 +13,9 @@ import type { RegisterInput } from '@/features/auth/domain/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import * as Haptics from 'expo-haptics';
 import { AppError } from '@/core/errors/app-error';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 type RegisterRole = 'estudiante' | 'docente';
 
@@ -78,7 +79,10 @@ export function RegisterForm() {
           <Pressable
             key={role}
             style={[styles.roleChip, selectedRole === role && styles.roleChipActive]}
-            onPress={() => setSelectedRole(role)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setSelectedRole(role);
+            }}
           >
             <Text style={[styles.roleChipText, selectedRole === role && styles.roleChipTextActive]}>
               {label}
@@ -212,83 +216,60 @@ export function RegisterForm() {
         )}
       </View>
 
-      <TouchableOpacity
+      <Pressable
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleSubmit(onSubmit)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSubmit(onSubmit)();
+        }}
         disabled={isLoading}
-        activeOpacity={0.8}
       >
         {isLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Crear cuenta</Text>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 20,
-  },
+  container: { gap: 20 },
   roleRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
   roleChip: {
-    flex: 1, paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#D1D5DB',
-    alignItems: 'center', backgroundColor: '#F9FAFB',
+    flex: 1, paddingVertical: 11, borderRadius: Sizes.radiusSm,
+    borderWidth: 1.5, borderColor: T.inputBorder,
+    alignItems: 'center', backgroundColor: T.surface,
+    ...Shadows.sm,
   },
-  roleChipActive: { borderColor: '#1B6BB0', backgroundColor: '#EFF6FF' },
-  roleChipText: { fontSize: 13, fontWeight: '600', color: '#6B7280' },
-  roleChipTextActive: { color: '#1B6BB0' },
+  roleChipActive: {
+    borderColor: T.primary, backgroundColor: T.primaryMuted,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.15,
+  },
+  roleChipText: { ...Typography.bodySm, fontWeight: '600', color: T.textSecondary },
+  roleChipTextActive: { color: T.primary },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.error,
   },
-  errorBannerText: {
-    color: '#991B1B',
-    fontSize: 14,
-  },
-  field: {
-    gap: 6,
-  },
+  errorBannerText: { ...Typography.bodySm, color: T.error },
+  field: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    ...Typography.bodySm, fontWeight: '600', color: T.textPrimary,
   },
   input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 14,
+    fontSize: 15, color: T.inputText,
   },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-  },
+  inputError: { borderColor: T.error },
+  errorText: { ...Typography.caption, color: T.error },
   button: {
-    backgroundColor: '#1B6BB0',
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
 });

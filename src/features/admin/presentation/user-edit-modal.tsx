@@ -14,7 +14,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { ManagedUser, ManagedUserRole } from '@/features/admin/domain/user-management.entity';
 import { RoleDropdown } from './role-dropdown';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const editUserSchema = z.object({
   nombre: z.string().min(2, 'Mínimo 2 caracteres').max(60, 'Máximo 60 caracteres'),
@@ -207,65 +207,25 @@ export function UserEditModal({ visible, user, isLoading, onSave, onClose }: Use
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: T.background,
-  },
+  overlay: { flex: 1, backgroundColor: T.background },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: T.surface,
-    padding: 16,
-    paddingTop: 56,
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: T.surfaceGlass, padding: 16, paddingTop: 56,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
     ...Shadows.sm,
   },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  cancelText: {
-    fontSize: 15,
-    color: T.textSecondary,
-  },
-  saveText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: T.primary,
-  },
-  content: {
-    padding: 16,
-    gap: 16,
-    paddingBottom: 40,
-  },
-  loader: {
-    marginBottom: 12,
-  },
-  field: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: T.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  headerTitle: { ...Typography.h4, color: T.textPrimary },
+  cancelText: { ...Typography.body, color: T.textSecondary },
+  saveText: { ...Typography.body, fontWeight: '700', color: T.primary },
+  content: { padding: 16, gap: 16, paddingBottom: 40 },
+  loader: { marginBottom: 12 },
+  field: { gap: 6 },
+  label: { ...Typography.overline, color: T.textSecondary },
   input: {
-    backgroundColor: T.surface,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    color: T.textPrimary,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
+    backgroundColor: T.inputBg, borderRadius: Sizes.radiusSm,
+    padding: 14, fontSize: 15, color: T.inputText,
+    borderWidth: 1.5, borderColor: T.inputBorder,
   },
-  inputError: {
-    borderColor: T.error,
-  },
-  errorText: {
-    color: T.error,
-    fontSize: 12,
-  },
+  inputError: { borderColor: T.error },
+  errorText: { ...Typography.caption, color: T.error },
 });

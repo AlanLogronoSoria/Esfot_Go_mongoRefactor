@@ -1,7 +1,7 @@
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
@@ -16,10 +16,11 @@ import Animated, {
   withDelay,
   FadeIn,
   FadeOut,
-  Easing,
   ZoomIn,
 } from 'react-native-reanimated';
+import { Mail, Check } from 'lucide-react-native';
 import { useAuthStore } from '@/store/auth.store';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export function EmailVerificationScreen() {
   const router = useRouter();
@@ -79,11 +80,11 @@ export function EmailVerificationScreen() {
   useEffect(() => {
     envelopeScale.value = withRepeat(
       withSequence(
-        withTiming(1.05, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) })
+        withTiming(1.05, { duration: 1000 }),
+        withTiming(1, { duration: 1000 }),
       ),
       -1,
-      true
+      true,
     );
   }, [envelopeScale]);
 
@@ -141,7 +142,7 @@ export function EmailVerificationScreen() {
     <View style={styles.container}>
       <Animated.View entering={ZoomIn.delay(200).duration(500)} style={styles.iconContainer}>
         <Animated.View style={[styles.envelopeWrapper, envelopeStyle]}>
-          <Text style={styles.envelopeIcon}>✉️</Text>
+          <Mail size={44} strokeWidth={1.5} color={T.primary} />
         </Animated.View>
       </Animated.View>
 
@@ -168,7 +169,8 @@ export function EmailVerificationScreen() {
 
         {resendSuccess && (
           <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.successBox}>
-            <Text style={styles.successText}>✓ Correo reenviado correctamente</Text>
+            <Check size={14} strokeWidth={2.5} color={T.success} />
+            <Text style={styles.successText}>Correo reenviado correctamente</Text>
           </Animated.View>
         )}
 
@@ -178,17 +180,16 @@ export function EmailVerificationScreen() {
           </Animated.View>
         )}
 
-        <TouchableOpacity
+        <Pressable
           style={[
             styles.resendButton,
             (resendCooldown > 0 || isLoading) && styles.resendButtonDisabled,
           ]}
           onPress={handleResend}
           disabled={resendCooldown > 0 || isLoading}
-          activeOpacity={0.7}
         >
           {isLoading ? (
-            <ActivityIndicator color="#00205B" size="small" />
+            <ActivityIndicator color={T.primary} size="small" />
           ) : (
             <Text style={styles.resendButtonText}>
               {resendCooldown > 0
@@ -196,16 +197,16 @@ export function EmailVerificationScreen() {
                 : 'Reenviar correo'}
             </Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
 
         <View style={styles.footer}>
-          <TouchableOpacity onPress={handleBackToRegister} activeOpacity={0.7}>
-            <Text style={styles.footerLink}>Corregir correo electrónico</Text>
-          </TouchableOpacity>
+          <Pressable onPress={handleBackToRegister}>
+            <Text style={styles.footerLink}>Corregir correo electronico</Text>
+          </Pressable>
           <View style={styles.footerDivider} />
-          <TouchableOpacity onPress={handleGoToLogin} activeOpacity={0.7}>
-            <Text style={styles.footerLink}>Ir al inicio de sesión</Text>
-          </TouchableOpacity>
+          <Pressable onPress={handleGoToLogin}>
+            <Text style={styles.footerLink}>Ir al inicio de sesion</Text>
+          </Pressable>
         </View>
       </Animated.View>
     </View>
@@ -214,143 +215,67 @@ export function EmailVerificationScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    justifyContent: 'center',
-    maxWidth: 400,
-    width: '100%',
-    alignSelf: 'center',
+    flex: 1, backgroundColor: T.background,
+    padding: 24, justifyContent: 'center',
+    maxWidth: 400, width: '100%', alignSelf: 'center',
   },
-  iconContainer: {
-    alignItems: 'center',
-    marginBottom: 32,
-  },
+  iconContainer: { alignItems: 'center', marginBottom: 32 },
   envelopeWrapper: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: T.primaryMuted,
+    justifyContent: 'center', alignItems: 'center',
+    ...Shadows.md,
   },
-  envelopeIcon: {
-    fontSize: 44,
-  },
-  content: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-  },
+  content: { alignItems: 'center', gap: 12 },
+  title: { ...Typography.h2, color: T.textPrimary, textAlign: 'center' },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
+    ...Typography.body, color: T.textSecondary,
+    textAlign: 'center', lineHeight: 20,
   },
   emailHighlight: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#00205B',
-    textAlign: 'center',
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginTop: 4,
+    ...Typography.body, fontWeight: '700', color: T.primary,
+    textAlign: 'center', backgroundColor: T.primaryMuted,
+    paddingHorizontal: 16, paddingVertical: 8,
+    borderRadius: Sizes.radiusSm, marginTop: 4,
   },
   instructions: {
-    backgroundColor: '#FFFBEB',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-    marginTop: 8,
-    width: '100%',
+    backgroundColor: T.warningBg, borderRadius: Sizes.radiusSm,
+    padding: 14, borderWidth: 1, borderColor: T.warning + '30',
+    marginTop: 8, width: '100%',
   },
   instructionText: {
-    fontSize: 13,
-    color: '#92400E',
-    lineHeight: 19,
-    textAlign: 'center',
+    ...Typography.bodySm, color: T.warning,
+    lineHeight: 19, textAlign: 'center',
   },
-  dotsContainer: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 8,
-  },
-  dot: {
-    fontSize: 10,
-    color: '#00205B',
-  },
-  waitingText: {
-    fontSize: 13,
-    color: '#9CA3AF',
-  },
+  dotsContainer: { flexDirection: 'row', gap: 6, marginTop: 8 },
+  dot: { fontSize: 10, color: T.primary },
+  waitingText: { ...Typography.bodySm, color: T.textTertiary },
   successBox: {
-    backgroundColor: '#D1FAE5',
-    borderRadius: 8,
-    padding: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#10B981',
+    flexDirection: 'row', gap: 8, alignItems: 'center',
+    backgroundColor: T.successBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.success,
     width: '100%',
   },
-  successText: {
-    fontSize: 13,
-    color: '#065F46',
-    fontWeight: '600',
-  },
+  successText: { ...Typography.bodySm, color: T.success, fontWeight: '600' },
   errorBox: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    padding: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.error,
     width: '100%',
   },
-  errorBoxText: {
-    fontSize: 13,
-    color: '#991B1B',
-  },
+  errorBoxText: { ...Typography.bodySm, color: T.error },
   resendButton: {
-    marginTop: 16,
-    borderWidth: 1.5,
-    borderColor: '#00205B',
-    borderRadius: 10,
-    padding: 14,
-    width: '100%',
-    alignItems: 'center',
+    marginTop: 16, borderWidth: 1.5, borderColor: T.primary,
+    borderRadius: Sizes.radiusSm, padding: 14,
+    width: '100%', alignItems: 'center',
+    ...Shadows.sm,
   },
-  resendButtonDisabled: {
-    borderColor: '#D1D5DB',
-    opacity: 0.6,
-  },
-  resendButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#00205B',
-  },
+  resendButtonDisabled: { borderColor: T.textMuted, opacity: 0.6 },
+  resendButtonText: { ...Typography.button, color: T.primary, fontSize: 15 },
   footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 24,
+    flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 24,
   },
   footerDivider: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#D1D5DB',
+    width: 4, height: 4, borderRadius: 2, backgroundColor: T.textMuted,
   },
-  footerLink: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
+  footerLink: { ...Typography.bodySm, color: T.textSecondary, fontWeight: '500' },
 });

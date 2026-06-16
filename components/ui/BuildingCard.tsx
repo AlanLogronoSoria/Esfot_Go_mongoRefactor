@@ -1,8 +1,10 @@
 import React from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
+  View, Text, Pressable, StyleSheet,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Star } from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export interface Building {
@@ -44,17 +46,16 @@ export function BuildingCard({
 
   return (
     <Animated.View entering={FadeInDown.delay(animationDelay).duration(400)}>
-      <TouchableOpacity
-        style={styles.card}
+      <Pressable
+        style={({ pressed }) => [styles.card, pressed && { opacity: 0.92 }]}
         onPress={onPress}
-        activeOpacity={0.92}
       >
-        {/* Left icon */}
         <View style={[styles.iconWrap, { backgroundColor: cfg.color + '14' }]}>
-          <Text style={styles.iconEmoji}>{building.icon ?? cfg.icon}</Text>
+          <Text style={[styles.iconLetter, { color: cfg.color }]}>
+            {cfg.label.charAt(0)}
+          </Text>
         </View>
 
-        {/* Content */}
         <View style={styles.content}>
           <View style={styles.topRow}>
             <View style={[styles.categoryBadge, { backgroundColor: cfg.color + '14' }]}>
@@ -70,124 +71,94 @@ export function BuildingCard({
           )}
           <View style={styles.metaRow}>
             {building.floor !== undefined && (
-              <Text style={styles.meta}>🏢 Piso {building.floor}</Text>
+              <Text style={styles.meta}>Piso {building.floor}</Text>
             )}
             {building.capacity !== undefined && (
-              <Text style={styles.meta}>👥 Cap. {building.capacity}</Text>
+              <Text style={styles.meta}>Cap. {building.capacity}</Text>
             )}
           </View>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           {onFavoritePress && (
-            <TouchableOpacity
+            <Pressable
               style={styles.actionBtn}
-              onPress={onFavoritePress}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onFavoritePress();
+              }}
               hitSlop={8}
-              activeOpacity={0.7}
             >
-              <Text style={styles.actionIcon}>{building.isFavorite ? '⭐' : '☆'}</Text>
-            </TouchableOpacity>
+              <Star
+                size={16}
+                strokeWidth={2}
+                color={building.isFavorite ? T.highlight : T.textTertiary}
+                fill={building.isFavorite ? T.highlight : 'transparent'}
+              />
+            </Pressable>
           )}
           {onMapPress && (
-            <TouchableOpacity
+            <Pressable
               style={[styles.actionBtn, styles.mapBtn]}
               onPress={onMapPress}
-              activeOpacity={0.8}
             >
               <Text style={styles.mapBtnText}>Ver</Text>
-            </TouchableOpacity>
+            </Pressable>
           )}
         </View>
-      </TouchableOpacity>
+      </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: T.surface,
-    borderRadius: Sizes.radiusLg,
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
     padding: Sizes.paddingMd,
     marginBottom: Sizes.gapMd,
     gap: 12,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    ...Shadows.sm,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 48, height: 48, borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
   },
-  iconEmoji: { fontSize: 24 },
+  iconLetter: {
+    fontSize: 20, fontWeight: '800',
+  },
   content: { flex: 1, gap: 4 },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   categoryBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
   },
   categoryText: {
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase' as const,
-    letterSpacing: 0.5,
+    ...Typography.overline, letterSpacing: 0.5,
   },
   code: {
-    fontSize: 11,
-    color: T.textTertiary,
-    fontWeight: '600',
+    ...Typography.caption, color: T.textTertiary,
   },
   name: {
-    ...Typography.h4,
-    color: T.textPrimary,
-    fontSize: 15,
+    ...Typography.body, color: T.textPrimary, fontWeight: '700',
   },
   description: {
-    ...Typography.bodySm,
-    color: T.textSecondary,
-    lineHeight: 18,
+    ...Typography.bodySm, color: T.textSecondary, lineHeight: 18,
   },
-  metaRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 2,
-  },
-  meta: {
-    fontSize: 11,
-    color: T.textTertiary,
-  },
-  actions: {
-    alignItems: 'center',
-    gap: 8,
-  },
+  metaRow: { flexDirection: 'row', gap: 10, marginTop: 2 },
+  meta: { ...Typography.caption, color: T.textTertiary },
+  actions: { alignItems: 'center', gap: 8 },
   actionBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: 'center', alignItems: 'center',
     backgroundColor: T.inputBg,
   },
-  actionIcon: { fontSize: 16 },
   mapBtn: {
-    backgroundColor: T.primary,
-    paddingHorizontal: 10,
-    width: 'auto' as any,
+    backgroundColor: T.primary, paddingHorizontal: 12,
+    width: 'auto' as any, ...Shadows.sm,
   },
   mapBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    ...Typography.caption, fontWeight: '700', color: '#FFFFFF',
   },
 });

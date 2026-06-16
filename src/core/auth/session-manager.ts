@@ -46,7 +46,6 @@ export class SessionManager {
     try {
       const meta = await this.getMetadata();
       if (!meta) return false;
-      if (!meta.rememberMe && timeoutMinutes === 30) return true;
       const lastActive = new Date(meta.lastActiveAt).getTime();
       const now = Date.now();
       const effectiveTimeout = meta.rememberMe ? timeoutMinutes : Math.min(timeoutMinutes, 30);

@@ -1,9 +1,16 @@
 import React, { useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet,
-  ImageBackground, Dimensions,
+  View, Text, Pressable, StyleSheet, Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { MapPin, Clock } from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import type { Event } from '@/features/events/domain/event.entity';
 
@@ -30,123 +37,162 @@ interface EventCardProps {
   actionLabel?: string;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 export function EventCard({ event, onPress, onAction, actionLabel }: EventCardProps) {
+  const scale = useSharedValue(1);
   const date = new Date(event.startDate);
   const day = date.getDate();
   const month = MONTHS[date.getMonth()] ?? '';
   const category = CATEGORY_LABEL[event.category ?? ''] ?? event.category ?? 'Evento';
+  const time = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 
-  const handlePress = useCallback(() => {
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.97, { damping: 24, stiffness: 360 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 20, stiffness: 300 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress?.(event);
-  }, [onPress, event]);
+  };
 
   const handleAction = useCallback(() => {
     onAction?.();
   }, [onAction]);
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={handlePress}
-      activeOpacity={0.95}
+    <AnimatedPressable
+      style={[styles.card, cardStyle]}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
-      <ImageBackground
-        source={
-          event.imageUrl
-            ? { uri: event.imageUrl }
-            : require('@/assets/images/partial-react-logo.png')
-        }
-        style={styles.image}
-        imageStyle={styles.imageStyle}
-      >
+      <View style={styles.imageWrap}>
+        <Image
+          source={
+            event.imageUrl
+              ? { uri: event.imageUrl }
+              : require('@/assets/images/partial-react-logo.png')
+          }
+          style={styles.image}
+          contentFit="cover"
+          transition={300}
+        />
         <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.85)']}
+          colors={['transparent', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.85)']}
           style={styles.gradient}
-        >
-          <View style={styles.dateBadge}>
-            <Text style={styles.dateMonth}>{month}</Text>
-            <Text style={styles.dateDay}>{day}</Text>
-          </View>
+        />
+        <View style={styles.dateBadge}>
+          <Text style={styles.dateMonth}>{month}</Text>
+          <Text style={styles.dateDay}>{day}</Text>
+        </View>
+      </View>
 
-          <View style={styles.content}>
-            <Text style={styles.category} numberOfLines={1}>
-              {category.toUpperCase()}
-            </Text>
-            <Text style={styles.title} numberOfLines={2}>
-              {event.title}
-            </Text>
-            <View style={styles.locationRow}>
-              <Text style={styles.locationIcon}>📍</Text>
-              <Text style={styles.location} numberOfLines={1}>
-                {event.location ?? 'EPN'}
-              </Text>
-            </View>
-
-            {actionLabel && (
-              <TouchableOpacity
-                style={styles.actionBtn}
-                onPress={handleAction}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.actionText}>{actionLabel}</Text>
-              </TouchableOpacity>
-            )}
+      <View style={styles.body}>
+        <View style={styles.categoryBadge}>
+          <Text style={styles.category} numberOfLines={1}>
+            {category.toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.title} numberOfLines={2}>
+          {event.title}
+        </Text>
+        <View style={styles.metaRow}>
+          <View style={styles.metaItem}>
+            <Clock size={13} strokeWidth={2} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.metaText}>{time}</Text>
           </View>
-        </LinearGradient>
-      </ImageBackground>
-    </TouchableOpacity>
+          <View style={styles.metaItem}>
+            <MapPin size={13} strokeWidth={2} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.metaText} numberOfLines={1}>
+              {event.location ?? 'EPN'}
+            </Text>
+          </View>
+        </View>
+
+        {actionLabel && (
+          <Pressable
+            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.8 }]}
+            onPress={handleAction}
+          >
+            <Text style={styles.actionText}>{actionLabel}</Text>
+          </Pressable>
+        )}
+      </View>
+    </AnimatedPressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     width: CARD_W,
-    borderRadius: Sizes.radiusXl,
+    borderRadius: 24,
     overflow: 'hidden',
     marginBottom: Sizes.gapLg,
     alignSelf: 'center',
-    ...Shadows.lg,
+    backgroundColor: T.backgroundCard,
+    ...Shadows.xl,
   },
-  image: {
+  imageWrap: {
+    position: 'relative',
     width: '100%',
     aspectRatio: 16 / 9,
   },
-  imageStyle: {
-    borderRadius: Sizes.radiusXl,
+  image: {
+    width: '100%',
+    height: '100%',
   },
   gradient: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: Sizes.paddingLg,
+    ...StyleSheet.absoluteFillObject,
   },
   dateBadge: {
     position: 'absolute',
-    top: Sizes.paddingMd,
-    left: Sizes.paddingMd,
-    backgroundColor: T.surfaceGlass,
-    borderRadius: Sizes.radiusMd,
-    paddingHorizontal: Sizes.paddingSm,
-    paddingVertical: Sizes.paddingXs,
+    top: 14,
+    right: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     alignItems: 'center',
-    minWidth: 48,
+    minWidth: 52,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+    ...Shadows.sm,
   },
   dateMonth: {
     fontSize: 11,
     fontWeight: '700',
-    color: T.primary,
+    color: T.highlight,
     textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   dateDay: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '800',
-    color: T.textPrimary,
+    color: '#FFFFFF',
+    lineHeight: 28,
   },
-  content: {
-    gap: 4,
-    marginTop: 4,
+  body: {
+    padding: Sizes.paddingMd,
+    gap: 8,
+    backgroundColor: '#0F1117',
+  },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: T.highlight + '18',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: T.highlight + '35',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   category: {
-    ...Typography.label,
+    fontSize: 10,
+    fontWeight: '700',
     color: T.highlight,
     letterSpacing: 1.5,
   },
@@ -154,29 +200,31 @@ const styles = StyleSheet.create({
     ...Typography.h4,
     color: '#FFFFFF',
   },
-  locationRow: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 2,
+    gap: 16,
   },
-  locationIcon: {
-    fontSize: 11,
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
-  location: {
+  metaText: {
     ...Typography.caption,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
   },
   actionBtn: {
     backgroundColor: T.accent,
     borderRadius: Sizes.radiusSm,
-    paddingVertical: Sizes.paddingSm,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: Sizes.gapSm,
+    marginTop: Sizes.gapXs,
+    ...Shadows.sm,
   },
   actionText: {
     ...Typography.button,
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
   },
 });

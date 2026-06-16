@@ -1,8 +1,11 @@
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { MapPin } from 'lucide-react-native';
 import { useGpsPermission } from '@/hooks/use-gps-permission';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export function GpsPermissionPrompt() {
   const router = useRouter();
@@ -38,35 +41,39 @@ export function GpsPermissionPrompt() {
     >
       <Animated.View entering={FadeIn.delay(200)} style={styles.card}>
         <View style={styles.iconContainer}>
-          <Text style={styles.icon}>📍</Text>
+          <MapPin size={36} strokeWidth={1.8} color={T.primary} />
         </View>
 
-        <Text style={styles.title}>Activar ubicación</Text>
+        <Text style={styles.title}>Activar ubicacion</Text>
         <Text style={styles.description}>
-          Para mostrarte el mapa del campus, las rutas del Polibús en tiempo real y ayudarte a navegar por la Escuela Politécnica Nacional.
+          Para mostrarte el mapa del campus, las rutas del Polibus en tiempo real y ayudarte a navegar por la Escuela Politecnica Nacional.
         </Text>
 
         <View style={styles.benefits}>
           <BenefitItem text="Mapa interactivo del campus" />
-          <BenefitItem text="Rutas de Polibús en tiempo real" />
+          <BenefitItem text="Rutas de Polibus en tiempo real" />
           <BenefitItem text="Ubicaciones de edificios y servicios" />
         </View>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.acceptButton}
-          onPress={handleAccept}
-          activeOpacity={0.8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleAccept();
+          }}
         >
-          <Text style={styles.acceptButtonText}>Permitir ubicación</Text>
-        </TouchableOpacity>
+          <Text style={styles.acceptButtonText}>Permitir ubicacion</Text>
+        </Pressable>
 
-        <TouchableOpacity
+        <Pressable
           style={styles.skipButton}
-          onPress={handleSkip}
-          activeOpacity={0.7}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            handleSkip();
+          }}
         >
           <Text style={styles.skipButtonText}>Ahora no</Text>
-        </TouchableOpacity>
+        </Pressable>
       </Animated.View>
     </Animated.View>
   );
@@ -75,7 +82,7 @@ export function GpsPermissionPrompt() {
 function BenefitItem({ text }: { text: string }) {
   return (
     <View style={styles.benefit}>
-      <Text style={styles.benefitDot}>•</Text>
+      <View style={styles.benefitDot} />
       <Text style={styles.benefitText}>{text}</Text>
     </View>
   );
@@ -83,90 +90,47 @@ function BenefitItem({ text }: { text: string }) {
 
 const styles = StyleSheet.create({
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, backgroundColor: T.overlay,
+    justifyContent: 'center', alignItems: 'center',
     padding: 24,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 28,
-    width: '100%',
-    maxWidth: 380,
-    alignItems: 'center',
-    gap: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 10,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
+    padding: 28, width: '100%', maxWidth: 380,
+    alignItems: 'center', gap: 16,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 72, height: 72, borderRadius: 24,
+    backgroundColor: T.primaryMuted,
+    justifyContent: 'center', alignItems: 'center',
   },
-  icon: {
-    fontSize: 36,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-  },
+  title: { ...Typography.h3, color: T.textPrimary, textAlign: 'center' },
   description: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
+    ...Typography.body, color: T.textSecondary,
+    textAlign: 'center', lineHeight: 21,
   },
   benefits: {
-    width: '100%',
-    gap: 8,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 14,
+    width: '100%', gap: 10,
+    backgroundColor: T.surface, borderRadius: Sizes.radiusMd,
+    padding: 14, borderWidth: 1, borderColor: T.cardBorder,
   },
   benefit: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
   },
   benefitDot: {
-    color: '#00205B',
-    fontSize: 16,
-    fontWeight: '700',
+    width: 6, height: 6, borderRadius: 3,
+    backgroundColor: T.primary,
   },
-  benefitText: {
-    fontSize: 13,
-    color: '#374151',
-  },
+  benefitText: { ...Typography.bodySm, color: T.textSecondary },
   acceptButton: {
-    backgroundColor: '#00205B',
-    borderRadius: 12,
-    padding: 16,
-    width: '100%',
-    alignItems: 'center',
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, width: '100%', alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  acceptButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  skipButton: {
-    padding: 8,
-    width: '100%',
-    alignItems: 'center',
-  },
-  skipButtonText: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
+  acceptButtonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
+  skipButton: { padding: 8, width: '100%', alignItems: 'center' },
+  skipButtonText: { ...Typography.bodySm, color: T.textTertiary },
 });

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import type { BulkRow } from '../domain/bulk-upload.entity';
 
 interface PreviewTableProps {
@@ -26,23 +28,26 @@ export function PreviewTable({ rows, validCount, invalidCount, onConfirm, onCanc
     <View style={styles.container}>
       <View style={styles.summary}>
         <View style={[styles.badge, styles.badgeValid]}>
-          <Text style={styles.badgeText}>✓ {validCount} válidas</Text>
+          <Text style={styles.badgeText}>{validCount} validas</Text>
         </View>
         {invalidCount > 0 && (
           <View style={[styles.badge, styles.badgeInvalid]}>
-            <Text style={[styles.badgeText, styles.badgeTextInvalid]}>✕ {invalidCount} con errores</Text>
+            <Text style={[styles.badgeText, styles.badgeTextInvalid]}>{invalidCount} con errores</Text>
           </View>
         )}
       </View>
       {invalidCount > 0 && (
         <View style={styles.filterRow}>
           {(['all', 'invalid'] as const).map((f) => (
-            <TouchableOpacity key={f} style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
-              onPress={() => { setFilter(f); setPage(0); }} activeOpacity={0.7}>
+            <Pressable key={f} style={[styles.filterBtn, filter === f && styles.filterBtnActive]}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setFilter(f); setPage(0);
+              }}>
               <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
                 {f === 'all' ? 'Todas' : 'Solo errores'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       )}
@@ -85,27 +90,34 @@ export function PreviewTable({ rows, validCount, invalidCount, onConfirm, onCanc
       </ScrollView>
       {totalPages > 1 && (
         <View style={styles.pagination}>
-          <TouchableOpacity style={[styles.pageBtn, page === 0 && styles.pageBtnDisabled]}
+          <Pressable style={[styles.pageBtn, page === 0 && styles.pageBtnDisabled]}
             onPress={() => setPage((p) => p - 1)} disabled={page === 0}>
-            <Text style={styles.pageBtnText}>←</Text>
-          </TouchableOpacity>
+            <ChevronLeft size={16} strokeWidth={2} color={page === 0 ? T.textMuted : T.primary} />
+          </Pressable>
           <Text style={styles.pageInfo}>{page + 1} / {totalPages}</Text>
-          <TouchableOpacity style={[styles.pageBtn, page === totalPages - 1 && styles.pageBtnDisabled]}
+          <Pressable style={[styles.pageBtn, page === totalPages - 1 && styles.pageBtnDisabled]}
             onPress={() => setPage((p) => p + 1)} disabled={page === totalPages - 1}>
-            <Text style={styles.pageBtnText}>→</Text>
-          </TouchableOpacity>
+            <ChevronRight size={16} strokeWidth={2} color={page === totalPages - 1 ? T.textMuted : T.primary} />
+          </Pressable>
         </View>
       )}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.7}>
+        <Pressable style={styles.cancelBtn} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          onCancel();
+        }}>
           <Text style={styles.cancelText}>Cancelar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.confirmBtn, (validCount === 0 || isUploading) && styles.confirmBtnDisabled]}
-          onPress={onConfirm} disabled={validCount === 0 || isUploading} activeOpacity={0.8}>
+        </Pressable>
+        <Pressable style={[styles.confirmBtn, (validCount === 0 || isUploading) && styles.confirmBtnDisabled]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            onConfirm();
+          }}
+          disabled={validCount === 0 || isUploading}>
           <Text style={styles.confirmText}>
-            {isUploading ? 'Subiendo…' : `Subir ${validCount} fila${validCount !== 1 ? 's' : ''}`}
+            {isUploading ? 'Subiendo...' : `Subir ${validCount} fila${validCount !== 1 ? 's' : ''}`}
           </Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
@@ -121,28 +133,52 @@ const styles = StyleSheet.create({
   badgeTextInvalid: { color: T.error },
   filterRow: { flexDirection: 'row', gap: Sizes.gapSm },
   filterBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: Sizes.radiusFull, backgroundColor: T.inputBg },
-  filterBtnActive: { backgroundColor: T.primary },
+  filterBtnActive: { backgroundColor: T.primary, ...Shadows.sm },
   filterText: { ...Typography.bodySm, color: T.textSecondary, fontWeight: '600' },
-  filterTextActive: { color: '#fff' },
+  filterTextActive: { color: '#FFFFFF' },
   tableBody: { maxHeight: 300 },
-  row: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: T.divider, backgroundColor: T.surface },
+  row: {
+    flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: T.divider,
+    backgroundColor: T.surface,
+  },
   rowInvalid: { backgroundColor: T.errorBg },
-  cell: { width: 120, paddingHorizontal: 10, paddingVertical: 10, borderRightWidth: 1, borderRightColor: T.divider, justifyContent: 'center' },
+  cell: {
+    width: 120, paddingHorizontal: 10, paddingVertical: 10,
+    borderRightWidth: 1, borderRightColor: T.divider, justifyContent: 'center',
+  },
   cellIndex: { width: 44, backgroundColor: T.inputBg },
   headerText: { ...Typography.caption, color: T.textSecondary, fontWeight: '700', textTransform: 'uppercase' },
   cellText: { ...Typography.bodySm, color: T.textPrimary },
   cellTextInvalid: { color: T.error },
-  errorRow: { backgroundColor: T.errorBg, paddingHorizontal: 12, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: T.divider },
+  errorRow: {
+    backgroundColor: T.errorBg, paddingHorizontal: 12, paddingVertical: 5,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
+  },
   errorRowText: { ...Typography.caption, color: T.error },
-  pagination: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16 },
-  pageBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: T.inputBg, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder },
+  pagination: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16,
+  },
+  pageBtn: {
+    width: 36, height: 36, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.surface, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
   pageBtnDisabled: { opacity: 0.35 },
-  pageBtnText: { fontSize: 16, fontWeight: '700', color: T.primary },
   pageInfo: { ...Typography.bodySm, color: T.textSecondary, fontWeight: '600' },
   actions: { flexDirection: 'row', gap: Sizes.gapMd, paddingTop: Sizes.paddingSm },
-  cancelBtn: { flex: 1, height: Sizes.btnHeight, borderRadius: Sizes.radiusMd, borderWidth: 1.5, borderColor: T.cardBorder, justifyContent: 'center', alignItems: 'center' },
+  cancelBtn: {
+    flex: 1, height: Sizes.btnHeight, borderRadius: Sizes.radiusMd,
+    borderWidth: 1.5, borderColor: T.cardBorder,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: T.surface,
+  },
   cancelText: { ...Typography.button, color: T.textSecondary },
-  confirmBtn: { flex: 2, height: Sizes.btnHeight, borderRadius: Sizes.radiusMd, backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center' },
+  confirmBtn: {
+    flex: 2, height: Sizes.btnHeight, borderRadius: Sizes.radiusMd,
+    backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
   confirmBtnDisabled: { opacity: 0.4 },
-  confirmText: { ...Typography.button, color: '#fff' },
+  confirmText: { ...Typography.button, color: '#FFFFFF' },
 });

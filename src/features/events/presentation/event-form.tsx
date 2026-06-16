@@ -1,11 +1,16 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  View, Text, TextInput as RNTextInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, ScrollView, Alert, Platform,
+  View, Text, TextInput as RNTextInput, Pressable,
+  StyleSheet, ActivityIndicator, ScrollView, Platform,
 } from 'react-native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useState, useCallback } from 'react';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { Image as ExpoImage } from 'expo-image';
+import Toast from 'react-native-toast-message';
+import { X } from 'lucide-react-native';
 import { eventFormSchema, EVENT_CATEGORY_OPTIONS } from '../domain/event.schema';
 import type { EventFormInput, EventFormCategory } from '../domain/event.schema';
 import type { Event, EventCategory } from '../domain/event.entity';
@@ -91,6 +96,7 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
   );
 
   const [picker, setPicker] = useState<PickerState>({ visible: false, mode: 'date', field: 'startDate' });
+  const [pickedImage, setPickedImage] = useState<string | null>(editEvent?.imageUrl ?? null);
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
 
@@ -98,6 +104,24 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
   const watchedEndDate = watch('endDate');
   const watchedStartTime = watch('startTime');
   const watchedEndTime = watch('endTime');
+
+  const handlePickImage = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Toast.show({ type: 'error', text1: 'Permiso denegado', text2: 'Se necesita acceso a la galería para seleccionar una imagen.' });
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setPickedImage(result.assets[0].uri);
+      setValue('imageUrl', result.assets[0].uri, { shouldDirty: true });
+    }
+  }, [setValue]);
 
   const openPicker = useCallback((field: PickerState['field'], mode: PickerMode) => {
     setPicker({ visible: true, mode, field });
@@ -136,15 +160,17 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
 
   const onSubmit = useCallback(async (data: EventFormInput) => {
     try {
+      const safeStartTime = data.startTime || '00:00';
+      const safeEndTime = data.endTime || '00:00';
       const basePayload = {
         title: data.title,
         description: data.description,
         location: data.location,
         category: data.category as EventCategory,
         imageUrl: data.imageUrl || null,
-        startDate: new Date(`${data.startDate}T${data.startTime}:00`).toISOString(),
+        startDate: new Date(`${data.startDate}T${safeStartTime}:00`).toISOString(),
         endDate: data.endDate && data.endTime
-          ? new Date(`${data.endDate}T${data.endTime}:00`).toISOString()
+          ? new Date(`${data.endDate}T${safeEndTime}:00`).toISOString()
           : null,
         organizer: data.organizer || null,
       };
@@ -158,7 +184,7 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
       onSuccess?.();
       onClose();
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Ocurrió un error inesperado');
+      Toast.show({ type: 'error', text1: 'Error', text2: error instanceof Error ? error.message : 'Ocurrió un error inesperado' });
     }
   }, [isEdit, editEvent, createMutation, updateMutation, onSuccess, onClose]);
 
@@ -223,13 +249,13 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
           <Text style={styles.label}>Categoría</Text>
           <View style={styles.categoryRow}>
             {EVENT_CATEGORY_OPTIONS.map((opt) => (
-              <TouchableOpacity key={opt.value}
+              <Pressable key={opt.value}
                 style={[styles.categoryChip, selectedCategory === opt.value && styles.categoryChipOn]}
-                onPress={() => handleCategorySelect(opt.value)} activeOpacity={0.7}>
+                onPress={() => handleCategorySelect(opt.value)}>
                 <Text style={[styles.categoryChipText, selectedCategory === opt.value && styles.categoryChipTextOn]}>
-                  {opt.emoji} {opt.label}
+                  {opt.label}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
           {errors.category && <Text style={styles.fieldErr}>{errors.category.message}</Text>}
@@ -239,28 +265,26 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
         <View style={styles.row}>
           <View style={[styles.field, styles.halfField]}>
             <Text style={styles.label}>Inicio</Text>
-            <TouchableOpacity
+            <Pressable
               style={[styles.input, errors.startDate && styles.inputErr]}
               onPress={() => openPicker('startDate', 'date')}
-              activeOpacity={0.7}
             >
               <Text style={watchedStartDate ? styles.inputText : styles.placeholder}>
                 {watchedStartDate ? formatDateForDisplay(watchedStartDate + 'T00:00:00') : 'Seleccionar fecha'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             {errors.startDate && <Text style={styles.fieldErr}>{errors.startDate.message}</Text>}
           </View>
           <View style={[styles.field, styles.halfField]}>
             <Text style={styles.label}>Hora</Text>
-            <TouchableOpacity
+            <Pressable
               style={[styles.input, errors.startTime && styles.inputErr]}
               onPress={() => openPicker('startTime', 'time')}
-              activeOpacity={0.7}
             >
               <Text style={watchedStartTime ? styles.inputText : styles.placeholder}>
                 {watchedStartTime || 'Seleccionar hora'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             {errors.startTime && <Text style={styles.fieldErr}>{errors.startTime.message}</Text>}
           </View>
         </View>
@@ -268,38 +292,55 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
         <View style={styles.row}>
           <View style={[styles.field, styles.halfField]}>
             <Text style={styles.label}>Fin (opcional)</Text>
-            <TouchableOpacity
+            <Pressable
               style={[styles.input, errors.endDate && styles.inputErr]}
               onPress={() => openPicker('endDate', 'date')}
-              activeOpacity={0.7}
             >
               <Text style={watchedEndDate ? styles.inputText : styles.placeholder}>
                 {watchedEndDate ? formatDateForDisplay(watchedEndDate + 'T00:00:00') : 'Seleccionar fecha'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             {errors.endDate && <Text style={styles.fieldErr}>{errors.endDate.message}</Text>}
           </View>
           <View style={[styles.field, styles.halfField]}>
             <Text style={styles.label}>Hora</Text>
-            <TouchableOpacity
+            <Pressable
               style={[styles.input, errors.endTime && styles.inputErr]}
               onPress={() => openPicker('endTime', 'time')}
-              activeOpacity={0.7}
             >
               <Text style={watchedEndTime ? styles.inputText : styles.placeholder}>
                 {watchedEndTime || 'Seleccionar hora'}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
             {errors.endTime && <Text style={styles.fieldErr}>{errors.endTime.message}</Text>}
           </View>
         </View>
 
         <View style={styles.field}>
-          <Text style={styles.label}>Imagen (URL)</Text>
+          <Text style={styles.label}>Imagen</Text>
+          {pickedImage ? (
+            <View style={styles.imagePreviewWrap}>
+              <ExpoImage source={{ uri: pickedImage }} style={styles.imagePreview} contentFit="cover" />
+              <Pressable
+                style={styles.imageRemoveBtn}
+                onPress={() => {
+                  setPickedImage(null);
+                  setValue('imageUrl', '', { shouldDirty: true });
+                }}
+              >
+                <X size={14} strokeWidth={2.5} color="#FFFFFF" />
+              </Pressable>
+            </View>
+          ) : null}
+          <Pressable style={styles.imagePickerBtn} onPress={handlePickImage}>
+            <Text style={styles.imagePickerBtnText}>
+              {pickedImage ? 'Cambiar imagen' : 'Seleccionar de galería'}
+            </Text>
+          </Pressable>
           <Controller control={control} name="imageUrl"
             render={({ field: { onChange, onBlur, value } }) => (
               <RNTextInput style={[styles.input, errors.imageUrl && styles.inputErr]}
-                placeholder="https://..." placeholderTextColor={T.inputPlaceholder}
+                placeholder="O pega una URL (https://...)" placeholderTextColor={T.inputPlaceholder}
                 keyboardType="url" autoCapitalize="none"
                 onBlur={onBlur} onChangeText={onChange} value={value} />
             )} />
@@ -317,21 +358,25 @@ export function EventForm({ onClose, onSuccess, editEvent }: EventFormProps) {
           {errors.organizer && <Text style={styles.fieldErr}>{errors.organizer.message}</Text>}
         </View>
 
-        <TouchableOpacity style={[styles.btn, (!isDirty || isLoading) && styles.btnOff]}
-          onPress={handleSubmit(onSubmit)} disabled={!isDirty || isLoading} activeOpacity={0.85}>
-          {isLoading ? <ActivityIndicator color={T.text} /> :
+        <Pressable style={[styles.btn, (!isDirty || isLoading) && styles.btnOff]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleSubmit(onSubmit)();
+          }}
+          disabled={!isDirty || isLoading}>
+          {isLoading ? <ActivityIndicator color="#FFFFFF" /> :
             <Text style={styles.btnT}>{isEdit ? 'Guardar cambios' : 'Crear evento'}</Text>}
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {picker.visible && (
         <DateTimePicker
           value={
             picker.mode === 'date'
-              ? parseDateValue(picker.field === 'startDate' ? watchedStartDate : watchedEndDate)
+              ? parseDateValue(picker.field === 'startDate' ? (watchedStartDate ?? new Date().toISOString()) : (watchedEndDate ?? new Date().toISOString()))
               : parseTimeValue(
-                  picker.field === 'startTime' ? watchedStartTime : watchedEndTime,
-                  picker.field === 'startTime' ? watchedStartDate : watchedEndDate
+                  picker.field === 'startTime' ? (watchedStartTime ?? '00:00') : (watchedEndTime ?? '00:00'),
+                  picker.field === 'startTime' ? (watchedStartDate ?? new Date().toISOString()) : (watchedEndDate ?? new Date().toISOString())
                 )
           }
           mode={picker.mode}
@@ -360,11 +405,45 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   halfField: { flex: 1 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  categoryChip: { backgroundColor: T.surface, borderRadius: Sizes.radiusFull, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: T.cardBorder },
-  categoryChipOn: { backgroundColor: T.primaryMuted, borderColor: T.primary },
-  categoryChipText: { fontSize: 13, fontWeight: '600', color: T.textSecondary },
+  categoryChip: {
+    backgroundColor: T.surface, borderRadius: Sizes.radiusFull,
+    paddingHorizontal: 14, paddingVertical: 8,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  categoryChipOn: {
+    backgroundColor: T.primaryMuted, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.15,
+  },
+  categoryChipText: { ...Typography.bodySm, fontWeight: '600', color: T.textSecondary },
   categoryChipTextOn: { color: T.primary },
-  btn: { backgroundColor: T.primary, borderRadius: Sizes.radiusMd, padding: 16, alignItems: 'center', marginTop: 8, ...Shadows.glow },
+  btn: {
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
   btnOff: { opacity: 0.5 },
-  btnT: { ...Typography.button, color: T.text },
+  btnT: { ...Typography.button, color: '#FFFFFF' },
+  imagePreviewWrap: {
+    position: 'relative', marginBottom: 8,
+    borderRadius: Sizes.radiusMd, overflow: 'hidden',
+  },
+  imagePreview: {
+    width: '100%', height: 180, borderRadius: Sizes.radiusMd,
+    backgroundColor: T.surfaceBorder,
+  },
+  imageRemoveBtn: {
+    position: 'absolute', top: 8, right: 8,
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  imagePickerBtn: {
+    borderWidth: 1.5, borderStyle: 'dashed', borderColor: T.primary + '40',
+    borderRadius: Sizes.radiusSm, padding: 12, alignItems: 'center',
+    backgroundColor: T.primaryMuted,
+  },
+  imagePickerBtnText: {
+    ...Typography.bodySm, fontWeight: '600', color: T.primary,
+  },
 });

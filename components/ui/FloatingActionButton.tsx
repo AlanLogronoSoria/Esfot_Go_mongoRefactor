@@ -1,24 +1,24 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Plus } from 'lucide-react-native';
 import { LightTheme as T, Shadows } from '@/constants/design-system';
 
 interface FloatingActionButtonProps {
-  icon?: string;
   onPress: () => void;
   bottom?: number;
   right?: number;
 }
 
-const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function FloatingActionButton({
-  icon = '+',
   onPress,
   bottom = 90,
   right = 20,
@@ -27,13 +27,14 @@ export function FloatingActionButton({
   const rotation = useSharedValue(0);
 
   const onPressIn = () => {
-    scale.value = withSpring(0.9);
+    scale.value = withSpring(0.88, { damping: 16, stiffness: 320 });
     rotation.value = withTiming(90, { duration: 200 });
   };
 
   const onPressOut = () => {
-    scale.value = withSpring(1);
+    scale.value = withSpring(1, { damping: 20, stiffness: 300 });
     rotation.value = withTiming(0, { duration: 200 });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress();
   };
 
@@ -45,14 +46,13 @@ export function FloatingActionButton({
   }));
 
   return (
-    <AnimatedTouchable
+    <AnimatedPressable
       style={[styles.fab, { bottom, right }, animatedStyle]}
       onPressIn={onPressIn}
       onPressOut={onPressOut}
-      activeOpacity={0.9}
     >
-      <Text style={styles.icon}>{icon}</Text>
-    </AnimatedTouchable>
+      <Plus size={28} strokeWidth={2} color="#FFFFFF" />
+    </AnimatedPressable>
   );
 }
 
@@ -66,11 +66,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 40,
-    ...Shadows.lg,
-  },
-  icon: {
-    fontSize: 28,
-    color: '#FFFFFF',
-    fontWeight: '300',
+    ...Shadows.xl,
   },
 });

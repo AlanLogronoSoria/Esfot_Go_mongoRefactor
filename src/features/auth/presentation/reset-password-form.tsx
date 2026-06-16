@@ -1,20 +1,19 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  View,
-  Text,
-  TextInput as RNTextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  View, Text, TextInput as RNTextInput, Pressable,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Check } from 'lucide-react-native';
 import { z } from 'zod';
 import { strongPasswordSchema, getPasswordStrength } from '@/features/auth/domain/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import type { PasswordStrength } from '@/features/auth/domain/auth.schema';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const resetPasswordSchema = z
   .object({
@@ -89,7 +88,9 @@ export function ResetPasswordForm() {
   if (success) {
     return (
       <Animated.View entering={FadeIn.duration(400)} style={styles.successContainer}>
-        <Text style={styles.successIcon}>✓</Text>
+        <View style={styles.successIcon}>
+          <Check size={32} strokeWidth={3} color={T.success} />
+        </View>
         <Text style={styles.successTitle}>¡Contraseña actualizada!</Text>
         <Text style={styles.successText}>Redirigiendo al inicio de sesión...</Text>
       </Animated.View>
@@ -99,8 +100,8 @@ export function ResetPasswordForm() {
   if (tokenState === 'verifying') {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#00205B" />
-        <Text style={{ textAlign: 'center', marginTop: 12, color: '#6B7280' }}>Verificando enlace...</Text>
+        <ActivityIndicator size="large" color={T.primary} />
+        <Text style={styles.verifyingText}>Verificando enlace...</Text>
       </View>
     );
   }
@@ -112,13 +113,15 @@ export function ResetPasswordForm() {
         <Text style={styles.subtitle}>
           El enlace de recuperación no es válido o ha expirado. Solicita uno nuevo.
         </Text>
-        <TouchableOpacity
+        <Pressable
           style={styles.button}
-          onPress={() => router.replace('/auth/recover')}
-          activeOpacity={0.8}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.replace('/auth/recover');
+          }}
         >
           <Text style={styles.buttonText}>Solicitar nuevo enlace</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
     );
   }
@@ -203,133 +206,74 @@ export function ResetPasswordForm() {
         )}
       </View>
 
-      <TouchableOpacity
+      <Pressable
         style={[styles.button, (isLoading || storeLoading) && styles.buttonDisabled]}
-        onPress={handleSubmit(onSubmit)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSubmit(onSubmit)();
+        }}
         disabled={isLoading || storeLoading}
-        activeOpacity={0.8}
       >
         {isLoading || storeLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Actualizar contraseña</Text>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
+  container: { gap: 20 },
+  title: { ...Typography.h2, color: T.textPrimary },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginTop: -12,
+    ...Typography.body, color: T.textSecondary,
+    lineHeight: 20, marginTop: -12,
+  },
+  verifyingText: {
+    ...Typography.body, textAlign: 'center', marginTop: 12, color: T.textSecondary,
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.error,
   },
-  errorBannerText: {
-    color: '#991B1B',
-    fontSize: 14,
-  },
+  errorBannerText: { ...Typography.bodySm, color: T.error },
   strengthContainer: {
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: T.surface, borderRadius: Sizes.radiusMd,
+    padding: 14, borderWidth: 1, borderColor: T.cardBorder,
     gap: 8,
   },
   strengthBarBg: {
-    height: 6,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 3,
-    overflow: 'hidden',
+    height: 6, backgroundColor: T.surfaceBorder,
+    borderRadius: 3, overflow: 'hidden',
   },
-  strengthBarFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  strengthLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  field: {
-    gap: 6,
-  },
+  strengthBarFill: { height: '100%', borderRadius: 3 },
+  strengthLabel: { ...Typography.bodySm, fontWeight: '700', textAlign: 'center' },
+  field: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    ...Typography.bodySm, fontWeight: '600', color: T.textPrimary,
   },
   input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 16,
+    fontSize: 15, color: T.inputText,
   },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-  },
+  inputError: { borderColor: T.error },
+  errorText: { ...Typography.caption, color: T.error },
   button: {
-    backgroundColor: '#00205B',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  successContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 12,
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
+  successContainer: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   successIcon: {
-    fontSize: 48,
-    color: '#059669',
-    backgroundColor: '#D1FAE5',
-    width: 80,
-    height: 80,
-    lineHeight: 80,
-    textAlign: 'center',
-    borderRadius: 40,
-    overflow: 'hidden',
+    width: 80, height: 80, borderRadius: 24,
+    backgroundColor: T.successBg,
+    justifyContent: 'center', alignItems: 'center',
   },
-  successTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  successText: {
-    fontSize: 14,
-    color: '#6B7280',
-  },
+  successTitle: { ...Typography.h2, color: T.success },
+  successText: { ...Typography.body, color: T.textSecondary },
 });

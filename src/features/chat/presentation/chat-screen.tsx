@@ -1,13 +1,21 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, KeyboardAvoidingView, Platform, Animated,
+  StyleSheet, KeyboardAvoidingView, Platform, Pressable,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withRepeat,
+  withDelay,
+  cancelAnimation,
+} from 'react-native-reanimated';
 import { useChat } from '../application/chat.hooks';
 import type { ChatMessage } from '../domain/chat.entity';
 import { useAuthStore } from '@/store/auth.store';
-import { LightTheme as T, Typography, Sizes } from '@/constants/design-system';
-import { Send, Wifi, WifiOff } from 'lucide-react-native';
+import { LightTheme as T, Typography, Sizes, Shadows } from '@/constants/design-system';
+import { Send, MessageCircle } from 'lucide-react-native';
 
 export function ChatScreen() {
   const user = useAuthStore((s) => s.user);
@@ -16,15 +24,37 @@ export function ChatScreen() {
   const { messages, isConnected, usersOnline, sendMessage, notification, clearNotification } = useChat();
   const [inputText, setInputText] = useState('');
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
-  const notifOpacity = useRef(new Animated.Value(0)).current;
+
+  const notifOpacity = useSharedValue(0);
+  const pulseOpacity = useSharedValue(1);
+
+  const pulseAnimStyle = useAnimatedStyle(() => ({
+    opacity: pulseOpacity.value,
+  }));
+  const notifAnimStyle = useAnimatedStyle(() => ({
+    opacity: notifOpacity.value,
+  }));
+
+  useEffect(() => {
+    if (isConnected) {
+      pulseOpacity.value = withRepeat(
+        withTiming(0.3, { duration: 1000 }),
+        -1,
+        true,
+      );
+      return () => cancelAnimation(pulseOpacity);
+    } else {
+      pulseOpacity.value = 0.35;
+    }
+  }, [isConnected, pulseOpacity]);
 
   useEffect(() => {
     if (notification) {
-      Animated.sequence([
-        Animated.timing(notifOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.delay(3000),
-        Animated.timing(notifOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-      ]).start(() => clearNotification());
+      notifOpacity.value = withTiming(1, { duration: 200 }, () => {
+        notifOpacity.value = withDelay(3000, withTiming(0, { duration: 400 }, () => {
+          clearNotification();
+        }));
+      });
     }
   }, [notification, notifOpacity, clearNotification]);
 
@@ -34,27 +64,46 @@ export function ChatScreen() {
     setInputText('');
   }, [inputText, sendMessage]);
 
-  const renderMessage = useCallback(({ item }: { item: ChatMessage }) => (
-    <View style={[styles.msgRow, item.isOwn && styles.msgRowOwn]}>
-      <View style={[styles.msgBubble, item.isOwn ? styles.msgBubbleOwn : styles.msgBubbleOther]}>
+  const renderMessage = useCallback(({ item, index }: { item: ChatMessage; index: number }) => {
+    const prevMessage = index > 0 ? messages[index - 1] : null;
+    const showAvatar = !item.isOwn && (!prevMessage || prevMessage.from !== item.from);
+    const showName = !item.isOwn && (!prevMessage || prevMessage.from !== item.from);
+
+    return (
+      <View style={[styles.msgRow, item.isOwn && styles.msgRowOwn]}>
         {!item.isOwn && (
-          <Text style={styles.msgFrom}>{item.from}</Text>
+          <View style={styles.avatarCol}>
+            {showAvatar && (
+              <View style={styles.msgAvatar}>
+                <Text style={styles.msgAvatarText}>
+                  {item.from.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
         )}
-        <Text style={[styles.msgText, item.isOwn && styles.msgTextOwn]}>
-          {item.text}
-        </Text>
-        <Text style={[styles.msgTime, item.isOwn && styles.msgTimeOwn]}>
-          {item.timestamp}
-        </Text>
+        <View style={[styles.msgBubble, item.isOwn ? styles.msgBubbleOwn : styles.msgBubbleOther]}>
+          {showName && (
+            <Text style={styles.msgFrom}>{item.from}</Text>
+          )}
+          <Text style={[styles.msgText, item.isOwn && styles.msgTextOwn]}>
+            {item.text}
+          </Text>
+          <View style={styles.msgFooter}>
+            <Text style={[styles.msgTime, item.isOwn && styles.msgTimeOwn]}>
+              {item.timestamp}
+            </Text>
+          </View>
+        </View>
       </View>
-    </View>
-  ), []);
+    );
+  }, [messages]);
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
       <View style={styles.header}>
         <View style={styles.headerInfo}>
@@ -63,14 +112,10 @@ export function ChatScreen() {
               {username.charAt(0).toUpperCase()}
             </Text>
           </View>
-          <View>
+          <View style={styles.headerTextWrap}>
             <Text style={styles.headerTitle}>Chat ESFOT</Text>
             <View style={styles.statusRow}>
-              {isConnected ? (
-                <Wifi size={12} color={T.success} />
-              ) : (
-                <WifiOff size={12} color={T.error} />
-              )}
+              <Animated.View style={[styles.onlineDot, { opacity: isConnected ? undefined : 0.35 }, isConnected ? styles.onlineDotActive : styles.onlineDotOff, pulseAnimStyle]} />
               <Text style={styles.statusText}>
                 {isConnected ? `${usersOnline} en línea` : 'Conectando...'}
               </Text>
@@ -80,7 +125,7 @@ export function ChatScreen() {
       </View>
 
       {notification && (
-        <Animated.View style={[styles.notifBanner, { opacity: notifOpacity }]}>
+        <Animated.View style={[styles.notifBanner, notifAnimStyle]}>
           <Text style={styles.notifText}>{notification}</Text>
         </Animated.View>
       )}
@@ -94,33 +139,41 @@ export function ChatScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>💬</Text>
+              <View style={styles.emptyArt}>
+                <MessageCircle size={36} strokeWidth={1.5} color={T.textTertiary} />
+              </View>
             <Text style={styles.emptyTitle}>No hay mensajes aún</Text>
             <Text style={styles.emptySub}>¡Sé el primero en escribir!</Text>
           </View>
         }
+        removeClippedSubviews
+        maxToRenderPerBatch={15}
+        windowSize={7}
+        initialNumToRender={20}
       />
 
       <View style={styles.inputBar}>
-        <TextInput
-          style={styles.input}
-          placeholder="Escribe un mensaje..."
-          placeholderTextColor={T.inputPlaceholder}
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
-          maxLength={500}
-          onSubmitEditing={handleSend}
-          returnKeyType="send"
-          blurOnSubmit
-        />
+        <View style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            placeholder="Escribe un mensaje..."
+            placeholderTextColor={T.inputPlaceholder}
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+            maxLength={500}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            blurOnSubmit
+          />
+        </View>
         <TouchableOpacity
           style={[styles.sendBtn, !inputText.trim() && styles.sendBtnOff]}
           onPress={handleSend}
           disabled={!inputText.trim()}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
-          <Send size={18} color={inputText.trim() ? T.text : T.textSecondary} />
+          <Send size={18} color={inputText.trim() ? '#FFFFFF' : T.textSecondary} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -132,60 +185,83 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: Sizes.paddingMd,
     paddingTop: Platform.OS === 'ios' ? 56 : 16,
-    paddingBottom: 12,
-    backgroundColor: T.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: T.divider,
+    paddingBottom: 14,
+    backgroundColor: T.surfaceGlass,
+    borderBottomWidth: 1, borderBottomColor: T.divider,
+    ...Shadows.sm,
   },
-  headerInfo: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  headerInfo: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   headerAvatar: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 42, height: 42, borderRadius: 21,
     backgroundColor: T.primaryMuted, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: T.primaryLight + '30',
   },
   headerAvatarText: { fontSize: 18, fontWeight: '800', color: T.primary },
+  headerTextWrap: { flex: 1 },
   headerTitle: { ...Typography.h4, color: T.textPrimary },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  onlineDot: { width: 8, height: 8, borderRadius: 4 },
+  onlineDotActive: { backgroundColor: T.success },
+  onlineDotOff: { backgroundColor: T.textTertiary },
   statusText: { fontSize: 12, color: T.textSecondary },
   notifBanner: {
     backgroundColor: T.infoBg, paddingVertical: 8, paddingHorizontal: Sizes.paddingMd,
     borderBottomWidth: 1, borderBottomColor: T.cardBorder,
   },
   notifText: { fontSize: 12, color: T.info, textAlign: 'center' },
-  msgList: { padding: Sizes.paddingMd, gap: 10, flexGrow: 1 },
-  msgRow: { flexDirection: 'row', justifyContent: 'flex-start' },
+  msgList: { padding: Sizes.paddingMd, gap: 4, flexGrow: 1 },
+  msgRow: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 6 },
   msgRowOwn: { justifyContent: 'flex-end' },
+  avatarCol: { width: 32, marginRight: 8 },
+  msgAvatar: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: T.primaryMuted, justifyContent: 'center', alignItems: 'center',
+    marginTop: 2,
+  },
+  msgAvatarText: { fontSize: 11, fontWeight: '700', color: T.primary },
   msgBubble: {
-    maxWidth: '78%', borderRadius: 18, paddingHorizontal: 14, paddingVertical: 10,
+    maxWidth: '72%', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
     backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder,
-    borderBottomLeftRadius: 4,
+    borderBottomLeftRadius: 4, ...Shadows.xs,
   },
   msgBubbleOwn: {
     backgroundColor: T.primary, borderColor: T.primary,
-    borderBottomLeftRadius: 18, borderBottomRightRadius: 4,
+    borderBottomLeftRadius: 20, borderBottomRightRadius: 4,
+    ...Shadows.sm, shadowColor: T.primary, shadowOpacity: 0.25,
   },
   msgBubbleOther: {},
-  msgFrom: { fontSize: 11, fontWeight: '700', color: T.textSecondary, marginBottom: 2 },
-  msgText: { fontSize: 14, color: T.textPrimary, lineHeight: 20 },
-  msgTextOwn: { color: T.text },
-  msgTime: { fontSize: 10, color: T.textSecondary, textAlign: 'right', marginTop: 4 },
-  msgTimeOwn: { color: T.primaryMuted },
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  msgFrom: { fontSize: 11, fontWeight: '700', color: T.accent, marginBottom: 3, marginTop: -2 },
+  msgText: { fontSize: 15, color: T.textPrimary, lineHeight: 21 },
+  msgTextOwn: { color: '#FFFFFF' },
+  msgFooter: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 3 },
+  msgTime: { fontSize: 10, color: T.textTertiary },
+  msgTimeOwn: { color: 'rgba(255,255,255,0.55)' },
+  empty: { alignItems: 'center', paddingTop: 120 },
+  emptyArt: {
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: T.surfaceBorder, justifyContent: 'center', alignItems: 'center',
+    marginBottom: 16,
+  },
   emptyTitle: { ...Typography.h4, color: T.textSecondary },
-  emptySub: { fontSize: 13, color: T.textSecondary, marginTop: 4 },
+  emptySub: { ...Typography.caption, color: T.textTertiary, marginTop: 6 },
   inputBar: {
-    flexDirection: 'row', alignItems: 'flex-end', gap: 8,
-    padding: Sizes.paddingSm, backgroundColor: T.surface,
-    borderTopWidth: 1, borderTopColor: T.divider,
+    flexDirection: 'row', alignItems: 'flex-end', gap: 10,
+    padding: Sizes.paddingSm, paddingTop: Sizes.paddingSm,
+    backgroundColor: T.surfaceGlass, borderTopWidth: 1,
+    borderTopColor: T.divider, ...Shadows.md,
+  },
+  inputWrap: {
+    flex: 1, backgroundColor: T.inputBg, borderRadius: 24,
+    borderWidth: 1.5, borderColor: T.inputBorder,
   },
   input: {
-    flex: 1, backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
-    borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10,
-    fontSize: 14, color: T.inputText, maxHeight: 100,
+    paddingHorizontal: 18, paddingVertical: 11,
+    fontSize: 15, color: T.inputText, maxHeight: 100,
   },
   sendBtn: {
-    width: 40, height: 40, borderRadius: 20,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.35,
   },
-  sendBtnOff: { backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder },
+  sendBtnOff: { backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.cardBorder },
 });

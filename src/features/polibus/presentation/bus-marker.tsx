@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Marker } from 'react-native-maps';
 import { useBusInterpolation } from '@/features/polibus/application/bus.hooks';
 import type { BusLocation } from '@/features/polibus/domain/route.entity';
-import { DarkTheme as T } from '@/constants/design-system';
+import { LightTheme as T, Shadows } from '@/constants/design-system';
 import { Bus } from 'lucide-react-native';
 
 interface Props {
@@ -26,7 +26,7 @@ export function BusMarker({ bus, color = T.primary }: Props) {
       zIndex={100}
     >
       <View style={[styles.container, { backgroundColor: color }]}>
-        <Bus size={18} color="#FFFFFF" style={styles.icon} />
+        <Bus size={18} strokeWidth={2.2} color="#FFFFFF" />
       </View>
     </Marker>
   );
@@ -34,20 +34,9 @@ export function BusMarker({ bus, color = T.primary }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-    elevation: 4,
-  },
-  icon: {
-    transform: [{ rotate: '-90deg' }], // Adjusting for flat rotation if needed
+    width: 36, height: 36, borderRadius: 18,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
+    ...Shadows.md,
   },
 });

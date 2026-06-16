@@ -35,7 +35,9 @@ export function useProfile() {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['profile'] });
+      }, 800);
     },
   });
 

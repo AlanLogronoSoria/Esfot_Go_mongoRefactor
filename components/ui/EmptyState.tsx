@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LightTheme as T, Sizes, Typography, Shadows } from '@/constants/design-system';
 
 interface EmptyStateProps {
-  icon?: string;
+  icon?: React.ReactNode;
   title: string;
   subtitle?: string;
   actionLabel?: string;
@@ -13,7 +13,7 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({
-  icon = '📭',
+  icon,
   title,
   subtitle,
   actionLabel,
@@ -26,14 +26,14 @@ export function EmptyState({
       style={styles.container}
     >
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>{icon}</Text>
+        {typeof icon === 'string' ? <Text style={styles.iconEmoji}>{icon}</Text> : (icon ?? <Text style={styles.iconEmoji}>📭</Text>)}
       </View>
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       {actionLabel && onAction && (
-        <TouchableOpacity style={styles.btn} onPress={onAction} activeOpacity={0.8}>
+        <Pressable style={styles.btn} onPress={onAction}>
           <Text style={styles.btnText}>{actionLabel}</Text>
-        </TouchableOpacity>
+        </Pressable>
       )}
     </Animated.View>
   );
@@ -48,37 +48,18 @@ const styles = StyleSheet.create({
     gap: Sizes.gapMd,
   },
   iconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: T.primaryMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 80, height: 80, borderRadius: 40,
+    backgroundColor: T.surfaceBorder,
+    justifyContent: 'center', alignItems: 'center',
     marginBottom: 8,
   },
-  icon: { fontSize: 36 },
-  title: {
-    ...Typography.h4,
-    color: T.textPrimary,
-    textAlign: 'center',
-  },
-  subtitle: {
-    ...Typography.bodySm,
-    color: T.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
+  iconEmoji: { fontSize: 36 },
+  title: { ...Typography.h4, color: T.textPrimary, textAlign: 'center' },
+  subtitle: { ...Typography.bodySm, color: T.textSecondary, textAlign: 'center', lineHeight: 20 },
   btn: {
-    marginTop: 8,
-    backgroundColor: T.primary,
-    borderRadius: Sizes.radiusMd,
-    paddingHorizontal: 28,
-    paddingVertical: 13,
-    ...Shadows.sm,
+    marginTop: 8, backgroundColor: T.primary,
+    borderRadius: Sizes.radiusMd, paddingHorizontal: 28, paddingVertical: 13,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  btnText: {
-    ...Typography.button,
-    color: '#FFFFFF',
-    fontSize: 14,
-  },
+  btnText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
 });

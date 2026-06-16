@@ -35,7 +35,7 @@ export class MongoBulkUploadRepository implements BulkUploadRepository {
       failed: ((data.errores as unknown[])?.length) ?? 0,
       errors: (data.errores as unknown[])?.map((e: unknown, i: number) => ({
         index: i,
-        row: (e as Record<string, unknown>)?.row ?? {},
+        row: ((e as Record<string, unknown>)?.row ?? {}) as Record<string, unknown>,
         reason: (e as Record<string, unknown>)?.reason as string ?? 'Error desconocido',
       })) ?? [],
     };

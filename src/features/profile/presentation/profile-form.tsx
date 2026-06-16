@@ -1,9 +1,12 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { View, Text, TextInput as RNTextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, ScrollView, Image } from 'react-native';
+import { View, Text, TextInput as RNTextInput, Pressable, StyleSheet, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { useState, useCallback, useEffect } from 'react';
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { Camera } from 'lucide-react-native';
 import { updateProfileSchema } from '@/features/auth/domain/auth.schema';
 import type { UpdateProfileInput } from '@/features/auth/domain/auth.schema';
 import { UserEntity } from '@/features/auth/domain/user.entity';
@@ -33,10 +36,11 @@ export function ProfileForm() {
   const onSubmit = useCallback(async (d: UpdateProfileInput) => {
     setOk(null);
     try {
+      const isLocalUri = localAvatar && (localAvatar.startsWith('file://') || localAvatar.startsWith('content://'));
       await updateProfile.mutateAsync({
         fullName: d.fullName || undefined,
         phone: d.phone || undefined,
-        avatarUrl: localAvatar,
+        avatarUrl: isLocalUri ? undefined : (localAvatar || undefined),
       });
       setOk('Perfil actualizado');
       setTimeout(() => setOk(null), 3000);
@@ -95,9 +99,12 @@ export function ProfileForm() {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={st.scroll} keyboardShouldPersistTaps="handled">
       <View style={st.root}>
         {/* Avatar */}
-        <TouchableOpacity style={st.avatarSection} onPress={handlePickAvatar} activeOpacity={0.8}>
+        <Pressable style={st.avatarSection} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          handlePickAvatar();
+        }}>
           {localAvatar ? (
-            <Image source={{ uri: localAvatar }} style={st.avatarImage} />
+            <Image source={{ uri: localAvatar }} style={st.avatarImage} contentFit="cover" transition={300} />
           ) : (
             <View style={st.avatar}><Text style={st.avatarText}>{ue?.initials ?? 'U'}</Text></View>
           )}
@@ -106,18 +113,18 @@ export function ProfileForm() {
             <Text style={st.email}>{user?.email}</Text>
             <View style={st.badges}>
               <View style={st.roleBadge}><Text style={st.roleBadgeText}>{ROLE_LABELS[user?.role ?? 'estudiante']}</Text></View>
-              <View style={st.verifiedBadge}><Text style={st.verifiedBadgeText}>✓ Verificado</Text></View>
+              <View style={st.verifiedBadge}><Text style={st.verifiedBadgeText}>Verificado</Text></View>
             </View>
           </View>
-          <Text style={st.cameraHint}>📷</Text>
-        </TouchableOpacity>
+          <Camera size={20} strokeWidth={1.8} color={T.textSecondary} />
+        </Pressable>
 
         {updateProfile.isError && <Animated.View entering={FadeIn} style={st.err}><Text style={st.errT}>{(updateProfile.error as any)?.message ?? 'Error'}</Text></Animated.View>}
         {ok && <Animated.View entering={ZoomIn} style={st.ok}><Text style={st.okT}>{ok}</Text></Animated.View>}
 
         {/* Personal */}
         <View style={st.section}>
-          <Text style={st.sectionTitle}>📋 Información personal</Text>
+          <Text style={st.sectionTitle}>Informacion personal</Text>
           <View style={st.field}>
             <Text style={st.label}>Nombre completo</Text>
             <Controller control={control} name="fullName" render={({ field: { onChange, onBlur, value } }) => <RNTextInput style={[st.input, errors.fullName && st.inputErr]} placeholder="Ej: Juan Pérez" placeholderTextColor={T.inputPlaceholder} autoCapitalize="words" onBlur={onBlur} onChangeText={onChange} value={value ?? ''} />} />
@@ -132,31 +139,37 @@ export function ProfileForm() {
 
         {/* Contact */}
         <View style={st.section}>
-          <Text style={st.sectionTitle}>📞 Contacto</Text>
+          <Text style={st.sectionTitle}>Contacto</Text>
           <View style={st.field}>
             <Text style={st.label}>Teléfono celular</Text>
             <Controller control={control} name="phone" render={({ field: { onChange, onBlur, value } }) => <RNTextInput style={[st.input, errors.phone && st.inputErr]} placeholder="09XXXXXXXX" placeholderTextColor={T.inputPlaceholder} keyboardType="phone-pad" maxLength={10} onBlur={onBlur} onChangeText={(t: string) => onChange(t.replace(/[^0-9]/g, ''))} value={value ?? ''} />} />
             {errors.phone && <Text style={st.fieldErr}>{errors.phone.message}</Text>}
             {!errors.phone && phone && phone.length > 0 && phone.length < 10 && <Text style={st.hint}>El teléfono debe tener 10 dígitos</Text>}
-            {!errors.phone && phone && phone.length === 10 && <Text style={st.hintOk}>✓ Formato válido</Text>}
+            {!errors.phone && phone && phone.length === 10 && <Text style={st.hintOk}>Formato valido</Text>}
           </View>
         </View>
 
         <Animated.View entering={FadeIn}>
-          <TouchableOpacity style={[st.btn, (isLoading || updateProfile.isPending) && st.btnOff]} onPress={handleSubmit(onSubmit)} disabled={isLoading || updateProfile.isPending} activeOpacity={0.85}>
-            {isLoading || updateProfile.isPending ? <ActivityIndicator color={T.text} /> : <Text style={st.btnT}>Guardar cambios</Text>}
-          </TouchableOpacity>
+          <Pressable style={[st.btn, (isLoading || updateProfile.isPending) && st.btnOff]} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleSubmit(onSubmit)();
+          }} disabled={isLoading || updateProfile.isPending}>
+            {isLoading || updateProfile.isPending ? <ActivityIndicator color="#FFFFFF" /> : <Text style={st.btnT}>Guardar cambios</Text>}
+          </Pressable>
         </Animated.View>
 
         {/* Security */}
         <View style={st.section}>
-          <Text style={st.sectionTitle}>🔒 Seguridad</Text>
+          <Text style={st.sectionTitle}>Seguridad</Text>
           <ChangePasswordForm />
         </View>
 
-        <TouchableOpacity style={st.logout} onPress={logout} activeOpacity={0.85}>
-          <Text style={st.logoutT}>Cerrar sesión</Text>
-        </TouchableOpacity>
+        <Pressable style={st.logout} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          logout();
+        }}>
+          <Text style={st.logoutT}>Cerrar sesion</Text>
+        </Pressable>
         <View style={{ height: 30 }} />
       </View>
     </ScrollView>
@@ -168,36 +181,76 @@ const st = StyleSheet.create({
   root: { gap: 20 },
   avatarSection: { flexDirection: 'row', alignItems: 'center', gap: 16, backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg, padding: Sizes.paddingLg, borderWidth: 1, borderColor: T.cardBorder, ...Shadows.md },
   avatar: { width: 64, height: 64, borderRadius: 32, backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center' },
-  avatarText: { color: T.text, fontSize: 24, fontWeight: '800' },
+  avatarText: { color: '#FFFFFF', fontSize: 24, fontWeight: '800' },
   avatarImage: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: T.primaryMuted },
   avatarInfo: { flex: 1, gap: 3 },
-  cameraHint: { fontSize: 20 },
   name: { ...Typography.h4, color: T.textPrimary },
-  email: { fontSize: 13, color: T.textSecondary },
+  email: { ...Typography.bodySm, color: T.textSecondary },
   badges: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  roleBadge: { backgroundColor: T.infoBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
-  roleBadgeText: { fontSize: 11, fontWeight: '700', color: T.info, textTransform: 'capitalize' },
-  verifiedBadge: { backgroundColor: T.successBg, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 8 },
-  verifiedBadgeText: { fontSize: 11, fontWeight: '700', color: T.success },
-  err: { backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm, padding: 12, borderLeftWidth: 3, borderLeftColor: T.error },
-  errT: { color: T.error, fontSize: 13 },
-  ok: { backgroundColor: T.successBg, borderRadius: Sizes.radiusSm, padding: 12, borderLeftWidth: 3, borderLeftColor: T.success, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  okT: { color: T.success, fontSize: 13, fontWeight: '600' },
-  section: { backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg, padding: Sizes.paddingLg, gap: 16, borderWidth: 1, borderColor: T.cardBorder, ...Shadows.sm },
+  roleBadge: {
+    backgroundColor: T.infoBg, paddingHorizontal: 10,
+    paddingVertical: 3, borderRadius: 8,
+  },
+  roleBadgeText: {
+    ...Typography.caption, fontWeight: '700',
+    color: T.info, textTransform: 'capitalize',
+  },
+  verifiedBadge: {
+    backgroundColor: T.successBg, paddingHorizontal: 10,
+    paddingVertical: 3, borderRadius: 8,
+  },
+  verifiedBadgeText: { ...Typography.caption, fontWeight: '700', color: T.success },
+  err: {
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 3, borderLeftColor: T.error,
+  },
+  errT: { ...Typography.bodySm, color: T.error },
+  ok: {
+    backgroundColor: T.successBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 3, borderLeftColor: T.success,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  okT: { ...Typography.bodySm, color: T.success, fontWeight: '600' },
+  section: {
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusXl,
+    padding: Sizes.paddingLg, gap: 16,
+    borderWidth: 1, borderColor: T.cardBorder, ...Shadows.md,
+  },
   sectionTitle: { ...Typography.h4, color: T.textPrimary },
   field: { gap: 5 },
   label: { ...Typography.label, color: T.textSecondary },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: Sizes.radiusMd, padding: 14, fontSize: 15, color: T.inputText },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 14,
+    fontSize: 15, color: T.inputText,
+  },
   inputErr: { borderColor: T.error },
-  readOnly: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder, borderRadius: Sizes.radiusMd, padding: 14 },
-  readOnlyT: { fontSize: 15, color: T.textSecondary },
-  readOnlyBadge: { fontSize: 11, fontWeight: '700', color: T.primary, backgroundColor: T.primaryMuted, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, overflow: 'hidden' },
-  hint: { fontSize: 11, color: T.textTertiary },
-  hintOk: { fontSize: 11, color: T.success, fontWeight: '600' },
-  fieldErr: { color: T.error, fontSize: 12 },
-  btn: { backgroundColor: T.primary, borderRadius: Sizes.radiusMd, padding: 16, alignItems: 'center', ...Shadows.glow },
+  readOnly: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder,
+    borderRadius: Sizes.radiusSm, padding: 14,
+  },
+  readOnlyT: { ...Typography.body, color: T.textSecondary },
+  readOnlyBadge: {
+    ...Typography.caption, fontWeight: '700', color: T.primary,
+    backgroundColor: T.primaryMuted, paddingHorizontal: 8,
+    paddingVertical: 2, borderRadius: 4,
+  },
+  hint: { ...Typography.caption, color: T.textTertiary },
+  hintOk: { ...Typography.caption, color: T.success, fontWeight: '600' },
+  fieldErr: { ...Typography.caption, color: T.error },
+  btn: {
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
   btnOff: { opacity: 0.5 },
-  btnT: { ...Typography.button, color: T.text },
-  logout: { backgroundColor: T.errorBg, borderRadius: Sizes.radiusMd, padding: 16, alignItems: 'center', borderWidth: 1, borderColor: T.error + '30' },
-  logoutT: { color: T.error, fontSize: 15, fontWeight: '700' },
+  btnT: { ...Typography.button, color: '#FFFFFF' },
+  logout: {
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: T.error + '30',
+    ...Shadows.sm,
+  },
+  logoutT: { ...Typography.button, color: T.error, fontSize: 15 },
 });

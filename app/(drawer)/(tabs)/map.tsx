@@ -1,6 +1,15 @@
 import React, { useCallback, useRef, useState, useMemo } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
-import MapView, { PROVIDER_GOOGLE, Polyline } from 'react-native-maps';
+import {
+  View, StyleSheet, Pressable, Platform,
+} from 'react-native';
+import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MapRegion, MapMarkerData, ClusterPoint, GeoCoordinate } from '@/features/map/domain/coordinates';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { useMapClusters } from '@/features/map/application/map.hooks';
@@ -18,10 +27,12 @@ import { calculateOptimalRoute } from '@/features/map/services/route-calculator'
 import { useBatteryOptimizer } from '@/features/map/services/battery-optimizer';
 import { useCampusGraph, useOptimalRoute } from '@/features/graph/application/graph.hooks';
 import { findNearestNode, graphRouteToWaypoints } from '@/features/graph/application/graph-route.service';
-import { useRouter } from 'expo-router';
 import type { RouteCalculation } from '@/features/map/services/route-calculator';
 import type { GraphRouteResult } from '@/features/graph/application/graph-route.service';
-import { LightTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes } from '@/constants/design-system';
+import { MapPin } from 'lucide-react-native';
+
+const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 
 const EPN_REGION: MapRegion = {
   latitude: -0.2095,
@@ -35,8 +46,8 @@ function isClusterPoint(item: MapMarkerData | ClusterPoint): item is ClusterPoin
 }
 
 export default function MapScreen() {
-  const router = useRouter();
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
   const { location: userLocation } = useLocation();
   const battery = useBatteryOptimizer();
 
@@ -49,6 +60,11 @@ export default function MapScreen() {
   const [fromNodeId, setFromNodeId] = useState<string | null>(null);
   const [toNodeId, setToNodeId] = useState<string | null>(null);
 
+  const fabScale = useSharedValue(1);
+  const fabAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: fabScale.value }],
+  }));
+
   const { data: campusGraph, error: graphError } = useCampusGraph();
   const optimalGraphRoute = useOptimalRoute(campusGraph, fromNodeId, toNodeId);
   const { clusters } = useMapClusters(region, selectedCategory);
@@ -57,124 +73,82 @@ export default function MapScreen() {
 
   const computeRoute = useCallback(
     (dest: GeoCoordinate) => {
-      if (!userLocation) {
-        console.log('[MapScreen] computeRoute: sin ubicación del usuario');
-        return;
-      }
-      const origin: GeoCoordinate = { latitude: userLocation.coords.latitude, longitude: userLocation.coords.longitude };
-
+      if (!userLocation) return;
+      const origin: GeoCoordinate = {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      };
       if (campusGraph) {
         const fromNode = findNearestNode(campusGraph, origin);
         const toNode = findNearestNode(campusGraph, dest);
         if (fromNode && toNode && fromNode !== toNode) {
-          console.log('[MapScreen] Ruta basada en grafo:', fromNode, '→', toNode);
-          setFromNodeId(fromNode);
-          setToNodeId(toNode);
-          setRoute(null);
-          return;
+          setFromNodeId(fromNode); setToNodeId(toNode); setRoute(null); return;
         }
       }
-
       const calc = calculateOptimalRoute(origin, dest);
-      console.log('[MapScreen] Ruta directa calculada:', calc.distance, 'm');
-      setRoute(calc);
-      setGraphRoute(null);
-      setFromNodeId(null);
-      setToNodeId(null);
+      setRoute(calc); setGraphRoute(null); setFromNodeId(null); setToNodeId(null);
     },
-    [userLocation, campusGraph]
+    [userLocation, campusGraph],
   );
 
   React.useEffect(() => {
     if (optimalGraphRoute && campusGraph) {
-      const result = graphRouteToWaypoints(campusGraph, optimalGraphRoute);
-      setGraphRoute(result);
-    } else if (fromNodeId && toNodeId && !optimalGraphRoute) {
-      if (userLocation) {
-        const dest = selectedLocation
-          ? { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude }
-          : null;
-        if (dest) {
-          setRoute(calculateOptimalRoute(
-            { latitude: userLocation.coords.latitude, longitude: userLocation.coords.longitude },
-            dest
-          ));
-        }
-        setGraphRoute(null);
-      }
+      setGraphRoute(graphRouteToWaypoints(campusGraph, optimalGraphRoute));
+    } else if (fromNodeId && toNodeId && !optimalGraphRoute && userLocation && selectedLocation) {
+      setRoute(calculateOptimalRoute(
+        { latitude: userLocation.coords.latitude, longitude: userLocation.coords.longitude },
+        { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude },
+      ));
+      setGraphRoute(null);
     }
   }, [optimalGraphRoute, campusGraph, fromNodeId, toNodeId, userLocation, selectedLocation]);
-  
-  // Polibus integration
+
   const { data: busRoutes } = useBusRoutes();
   const activeRoute = busRoutes?.find((r) => r.isActive);
   const { data: busLocations } = useBusLocations(activeRoute?.id ?? '');
 
-  const handleRegionChange = useCallback((r: MapRegion) => {
-    setRegion(r);
-  }, []);
-
+  const handleRegionChange = useCallback((r: MapRegion) => setRegion(r), []);
   const handleMarkerPress = useCallback((marker: MapMarkerData) => {
-    const location: CampusLocation = {
-      id: marker.id,
-      name: marker.title,
+    setSelectedLocation({
+      id: marker.id, name: marker.title,
       description: marker.description ?? null,
       category: marker.category,
       latitude: marker.coordinate.latitude,
       longitude: marker.coordinate.longitude,
       imageUrl: marker.imageUrl ?? null,
       createdAt: '',
-    };
-    setSelectedLocation(location);
+    });
     computeRoute(marker.coordinate);
   }, [computeRoute]);
-
   const handleSelectLocation = useCallback((location: CampusLocation) => {
     setSelectedLocation(location);
-    const dest: GeoCoordinate = { latitude: location.latitude, longitude: location.longitude };
-    mapRef.current?.animateToRegion({ ...dest, latitudeDelta: 0.004, longitudeDelta: 0.004 }, 500);
-    computeRoute(dest);
+    mapRef.current?.animateToRegion({
+      latitude: location.latitude, longitude: location.longitude,
+      latitudeDelta: 0.004, longitudeDelta: 0.004,
+    }, 500);
+    computeRoute({ latitude: location.latitude, longitude: location.longitude });
   }, [computeRoute]);
-
   const handleClearRoute = useCallback(() => {
-    setRoute(null);
-    setGraphRoute(null);
-    setFromNodeId(null);
-    setToNodeId(null);
+    setRoute(null); setGraphRoute(null); setFromNodeId(null); setToNodeId(null);
     setSelectedLocation(null);
   }, []);
 
   const handleMyLocation = useCallback(() => {
     if (!userLocation) return;
     setIsLocating(true);
-    mapRef.current?.animateToRegion(
-      {
-        latitude: userLocation.coords.latitude,
-        longitude: userLocation.coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      },
-      600
-    );
+    mapRef.current?.animateToRegion({
+      latitude: userLocation.coords.latitude,
+      longitude: userLocation.coords.longitude,
+      latitudeDelta: 0.005, longitudeDelta: 0.005,
+    }, 600);
     setTimeout(() => setIsLocating(false), 1200);
   }, [userLocation]);
-
-  const handleZoomIn = useCallback(() => {
-    setRegion((prev) => ({
-      ...prev,
-      latitudeDelta: prev.latitudeDelta / 1.6,
-      longitudeDelta: prev.longitudeDelta / 1.6,
-    }));
-  }, []);
-
-  const handleZoomOut = useCallback(() => {
-    setRegion((prev) => ({
-      ...prev,
-      latitudeDelta: prev.latitudeDelta * 1.6,
-      longitudeDelta: prev.longitudeDelta * 1.6,
-    }));
-  }, []);
-
+  const handleZoomIn = useCallback(() => setRegion((prev) => ({
+    ...prev, latitudeDelta: prev.latitudeDelta / 1.6, longitudeDelta: prev.longitudeDelta / 1.6,
+  })), []);
+  const handleZoomOut = useCallback(() => setRegion((prev) => ({
+    ...prev, latitudeDelta: prev.latitudeDelta * 1.6, longitudeDelta: prev.longitudeDelta * 1.6,
+  })), []);
   const skipAnimation = useMemo(() => battery.shouldSkipAnimation(), [battery]);
 
   return (
@@ -182,7 +156,7 @@ export default function MapScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={MAP_PROVIDER}
         initialRegion={EPN_REGION}
         region={region}
         onRegionChangeComplete={handleRegionChange}
@@ -194,52 +168,49 @@ export default function MapScreen() {
         pitchEnabled={false}
       >
         {userLocation && <UserMarker location={userLocation} />}
-
-        {clusters.map((item) => {
-          if (isClusterPoint(item)) {
-            return (
-              <ClusterMarker
-                key={item.id}
-                id={item.id}
-                coordinate={item.coordinate}
-                count={item.count}
-                topCategory={item.topCategory}
-              />
-            );
-          }
-          return (
+        {clusters.map((item) =>
+          isClusterPoint(item) ? (
+            <ClusterMarker
+              key={item.id}
+              id={item.id}
+              coordinate={item.coordinate}
+              count={item.count}
+              topCategory={item.topCategory}
+            />
+          ) : (
             <LocationMarker
               key={item.id}
               marker={item}
               onPress={handleMarkerPress}
               tracksViewChanges={!skipAnimation}
             />
-          );
-        })}
-
+          ),
+        )}
         {busLocations?.map((bus) => (
           <BusMarker key={bus.id} bus={bus} color={activeRoute?.color} />
         ))}
-
         {(route || graphRoute) && (route?.waypoints.length ?? graphRoute?.waypoints.length ?? 0) > 1 && (
           <Polyline
             coordinates={graphRoute ? graphRoute.waypoints : route!.waypoints}
             strokeColor={graphRoute ? T.success : T.primary}
-            strokeWidth={graphRoute ? 5 : 4}
+            strokeWidth={graphRoute ? 6 : 5}
             lineDashPattern={graphRoute ? undefined : [8, 6]}
             lineCap="round"
             lineJoin="round"
           />
         )}
-
         {(route || graphRoute) && (
           <LocationMarker
             key="route-dest"
             marker={{
               id: 'route-dest',
-              coordinate: route?.destination ?? (graphRoute ? graphRoute.waypoints[graphRoute.waypoints.length - 1] : { latitude: 0, longitude: 0 }),
+              coordinate: route?.destination ?? (graphRoute
+                ? graphRoute.waypoints[graphRoute.waypoints.length - 1]
+                : { latitude: 0, longitude: 0 }),
               title: selectedLocation?.name ?? 'Destino',
-              description: graphRoute ? `${graphRoute.distance}m · ${graphRoute.nodeCount} nodos` : `${Math.round(route?.distance ?? 0)}m`,
+              description: graphRoute
+                ? `${graphRoute.distance}m · ${graphRoute.nodeCount} nodos`
+                : `${Math.round(route?.distance ?? 0)}m`,
               category: 'otro',
               clusterWeight: 0,
             }}
@@ -248,21 +219,12 @@ export default function MapScreen() {
         )}
       </MapView>
 
-      {/* Top Header Area */}
-      <View style={styles.topBar}>
-        <View style={styles.topBarRow}>
-          <TouchableOpacity
-            style={styles.menuBtn}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.menuIcon}>☰</Text>
-          </TouchableOpacity>
-          <View style={styles.searchWrap}>
-            <MapSearchBar onSelectLocation={handleSelectLocation} />
-          </View>
+      {/* Floating search + chips */}
+      <View style={styles.floatingTop} pointerEvents="box-none">
+        <View style={styles.searchWrap}>
+          <MapSearchBar onSelectLocation={handleSelectLocation} />
         </View>
-        <View style={styles.filterWrap}>
+        <View style={styles.chipWrap}>
           <CategoryFilter
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
@@ -270,11 +232,16 @@ export default function MapScreen() {
         </View>
       </View>
 
-      {/* Route Info */}
-      <RouteInfoCard route={route} graphRoute={graphRoute} isVisible={!!(route || graphRoute)} onClear={handleClearRoute} />
+      {/* Route info card */}
+      <RouteInfoCard
+        route={route}
+        graphRoute={graphRoute}
+        isVisible={!!(route || graphRoute)}
+        onClear={handleClearRoute}
+      />
 
-      {/* Map Controls */}
-      <View style={styles.controlsContainer}>
+      {/* Map controls — right edge */}
+      <View style={styles.rightControls}>
         <MapControls
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
@@ -283,22 +250,27 @@ export default function MapScreen() {
         />
       </View>
 
-      {/* Recenter FAB */}
-      <TouchableOpacity
-        style={styles.recenterFab}
-        onPress={handleMyLocation}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.recenterIcon}>⊙</Text>
-      </TouchableOpacity>
+      {/* Current location FAB */}
+      <Animated.View style={[styles.fabWrap, { bottom: insets.bottom + 96 }, fabAnimStyle]}>
+        <Pressable
+          onPressIn={() => {
+            fabScale.value = withSpring(0.88, { damping: 16, stiffness: 360 });
+          }}
+          onPressOut={() => {
+            fabScale.value = withSpring(1, { damping: 20, stiffness: 300 });
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleMyLocation();
+          }}
+          style={styles.locationFab}
+        >
+          <MapPin size={22} strokeWidth={2.2} color={T.primary} />
+        </Pressable>
+      </Animated.View>
 
-      {/* Location Detail Sheet */}
+      {/* Location detail */}
       <LocationDetailSheet
         location={selectedLocation}
-        onClose={() => {
-          setSelectedLocation(null);
-          setRoute(null);
-        }}
+        onClose={() => { setSelectedLocation(null); setRoute(null); }}
         onNavigate={() => {}}
       />
     </View>
@@ -309,65 +281,35 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
 
-  topBar: {
+  floatingTop: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     zIndex: 100,
-    paddingTop: Platform.OS === 'ios' ? 50 : 40,
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  topBarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingHorizontal: 14,
     gap: 10,
   },
-  menuBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: T.surfaceGlass,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    ...Shadows.sm,
-  },
-  menuIcon: {
-    fontSize: 18,
-    color: T.primary,
-    fontWeight: '700',
-  },
-  searchWrap: { flex: 1 },
-  filterWrap: { paddingLeft: 50 },
+  searchWrap: {},
+  chipWrap: { paddingLeft: 4 },
 
-  controlsContainer: {
+  rightControls: {
     position: 'absolute',
-    right: 12,
-    top: Platform.OS === 'ios' ? 180 : 170,
+    right: 16,
+    top: Platform.OS === 'ios' ? 210 : 200,
     zIndex: 99,
   },
 
-  recenterFab: {
+  fabWrap: {
     position: 'absolute',
-    bottom: 100,
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: T.surfaceGlass,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    ...Shadows.lg,
+    bottom: 0,
+    right: 20,
     zIndex: 50,
   },
-  recenterIcon: {
-    fontSize: 22,
-    color: T.primary,
-    fontWeight: '600',
+  locationFab: {
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: T.surface,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
 });

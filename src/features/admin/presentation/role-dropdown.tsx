@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
+import { ChevronDown, Check } from 'lucide-react-native';
 import type { ManagedUserRole } from '@/features/admin/domain/user-management.entity';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 const ROLES: { key: ManagedUserRole; label: string; color: string }[] = [
   { key: 'estudiante', label: 'Estudiante', color: '#1B6BB0' },
@@ -20,115 +21,79 @@ export function RoleDropdown({ value, onChange }: RoleDropdownProps) {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <Pressable
         style={[styles.trigger, { borderColor: current.color }]}
         onPress={() => setOpen(true)}
-        activeOpacity={0.7}
       >
         <View style={[styles.dot, { backgroundColor: current.color }]} />
         <Text style={styles.triggerText}>{current.label}</Text>
-        <Text style={styles.chevron}>▼</Text>
-      </TouchableOpacity>
+        <ChevronDown size={14} strokeWidth={2.2} color={T.textTertiary} />
+      </Pressable>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity
+        <Pressable
           style={styles.overlay}
-          activeOpacity={1}
           onPress={() => setOpen(false)}
         >
           <View style={styles.dropdown}>
             <Text style={styles.dropdownTitle}>Seleccionar rol</Text>
             {ROLES.map((role) => (
-              <TouchableOpacity
+              <Pressable
                 key={role.key}
                 style={[styles.option, value === role.key && styles.optionActive]}
                 onPress={() => {
                   onChange(role.key);
                   setOpen(false);
                 }}
-                activeOpacity={0.7}
               >
                 <View style={[styles.dot, { backgroundColor: role.color }]} />
                 <Text style={styles.optionText}>{role.label}</Text>
-                {value === role.key && <Text style={styles.check}>✓</Text>}
-              </TouchableOpacity>
+                {value === role.key && (
+                  <Check size={16} strokeWidth={2.5} color={T.primary} />
+                )}
+              </Pressable>
             ))}
           </View>
-        </TouchableOpacity>
+        </Pressable>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    zIndex: 10,
-  },
+  container: { zIndex: 10 },
   trigger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: T.surface,
-    borderRadius: 8,
-    padding: 10,
-    borderWidth: 1.5,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: T.surface, borderRadius: Sizes.radiusSm,
+    padding: 12, borderWidth: 1.5,
+    ...Shadows.sm,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
+  dot: { width: 10, height: 10, borderRadius: 5 },
   triggerText: {
-    flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
-    color: T.textPrimary,
-  },
-  chevron: {
-    fontSize: 10,
-    color: T.textTertiary,
+    flex: 1, ...Typography.bodySm, fontWeight: '600', color: T.textPrimary,
   },
   overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flex: 1, backgroundColor: T.overlay,
+    justifyContent: 'center', alignItems: 'center',
     padding: 24,
   },
   dropdown: {
-    backgroundColor: T.surface,
-    borderRadius: 14,
-    padding: 16,
-    width: '100%',
-    maxWidth: 280,
-    gap: 4,
-    ...Shadows.lg,
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusXl,
+    padding: 18, width: '100%', maxWidth: 280, gap: 4,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
   dropdownTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.textPrimary,
-    marginBottom: 8,
+    ...Typography.h4, color: T.textPrimary, marginBottom: 8,
   },
   option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    padding: 14, borderRadius: Sizes.radiusSm,
   },
   optionActive: {
-    backgroundColor: T.inputBg,
+    backgroundColor: T.primaryMuted,
   },
   optionText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.textPrimary,
-  },
-  check: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.primary,
+    flex: 1, ...Typography.body, fontWeight: '600', color: T.textPrimary,
   },
 });

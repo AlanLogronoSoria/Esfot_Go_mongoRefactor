@@ -4,15 +4,17 @@ import {
   View,
   Text,
   TextInput as RNTextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { z } from 'zod';
 import { useExpressAuthStore } from '@/services/express/express-auth.store';
 import { useRouter } from 'expo-router';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 const expressLoginSchema = z.object({
   email: z.string().min(1, 'El correo es requerido').email('Formato inválido'),
@@ -113,80 +115,50 @@ export function ExpressLoginForm({ role, onSuccess }: ExpressLoginFormProps) {
         {errors.password && <Text style={styles.fieldError}>{errors.password.message}</Text>}
       </View>
 
-      <TouchableOpacity
+      <Pressable
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleSubmit(onSubmit)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSubmit(onSubmit)();
+        }}
         disabled={isLoading}
-        activeOpacity={0.8}
       >
         {isLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Ingresar</Text>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 18,
-  },
+  container: { gap: 18 },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
+    ...Typography.h3, color: T.textPrimary, textAlign: 'center',
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 8,
-    padding: 12,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 12, borderLeftWidth: 4, borderLeftColor: T.error,
   },
-  errorText: {
-    color: '#991B1B',
-    fontSize: 13,
-  },
-  field: {
-    gap: 6,
-  },
+  errorText: { ...Typography.bodySm, color: T.error },
+  field: { gap: 6 },
   label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
+    ...Typography.bodySm, fontWeight: '600', color: T.textPrimary,
   },
   input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 14,
+    fontSize: 15, color: T.inputText,
   },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  fieldError: {
-    color: '#EF4444',
-    fontSize: 12,
-  },
+  inputError: { borderColor: T.error },
+  fieldError: { ...Typography.caption, color: T.error },
   button: {
-    backgroundColor: '#00205B',
-    borderRadius: 10,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
 });

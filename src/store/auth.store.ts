@@ -1,10 +1,14 @@
 import { create } from 'zustand';
+import * as SecureStore from 'expo-secure-store';
 import type { User } from '@/core/types';
 import { AuthService } from '@/features/auth/services/auth.service';
 import type { LoginInput, RegisterInput, UpdateProfileInput } from '@/features/auth/domain/auth.schema';
 import { TokenCleanupService } from '@/core/auth/token-cleanup';
 import { isDevMode } from '@/core/config/env';
 import { MockAuth } from '@/core/dev/mock-services';
+
+const AUTH_TOKEN_KEY = 'esfotgo_jwt_token';
+const AUTH_USER_KEY = 'esfotgo_jwt_user';
 
 interface AuthState {
   user: User | null;
@@ -68,6 +72,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   setSession: (user: User | null, token: string | null) => {
     set({ user, token, isSessionValid: !!user && !!token });
+    if (user && token) {
+      SecureStore.setItemAsync(AUTH_TOKEN_KEY, token).catch(() => {});
+      SecureStore.setItemAsync(AUTH_USER_KEY, JSON.stringify(user)).catch(() => {});
+    } else if (!user && !token) {
+      SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => {});
+      SecureStore.deleteItemAsync(AUTH_USER_KEY).catch(() => {});
+    }
   },
 
   initialize: async () => {
@@ -196,6 +207,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         registrationStep: 'form', registrationEmail: null,
         unsubscribeAuth: null, isLoading: false,
       });
+      SecureStore.deleteItemAsync(AUTH_TOKEN_KEY).catch(() => {});
+      SecureStore.deleteItemAsync(AUTH_USER_KEY).catch(() => {});
     }
   },
 

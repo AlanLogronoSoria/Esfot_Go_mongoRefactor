@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { Check, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import type { UploadResult } from '../domain/bulk-upload.entity';
 
 interface UploadReportProps {
@@ -15,7 +17,11 @@ export function UploadReport({ result, onReset }: UploadReportProps) {
   return (
     <View style={styles.container}>
       <View style={[styles.iconCircle, allOk ? styles.iconCircleSuccess : styles.iconCircleWarn]}>
-        <Text style={styles.icon}>{allOk ? '✓' : '⚠'}</Text>
+        {allOk ? (
+          <Check size={36} strokeWidth={2.5} color={T.success} />
+        ) : (
+          <AlertTriangle size={36} strokeWidth={2} color={T.warning} />
+        )}
       </View>
       <Text style={styles.title}>{allOk ? '¡Carga completada!' : 'Carga completada con errores'}</Text>
       <View style={styles.statsRow}>
@@ -34,11 +40,21 @@ export function UploadReport({ result, onReset }: UploadReportProps) {
       </View>
       {result.errors.length > 0 && (
         <View style={styles.errorsSection}>
-          <TouchableOpacity style={styles.errorsToggle} onPress={() => setShowErrors((v) => !v)} activeOpacity={0.7}>
-            <Text style={styles.errorsToggleText}>
-              {showErrors ? '▲' : '▼'}  Ver {result.errors.length} error{result.errors.length !== 1 ? 'es' : ''} de inserción
-            </Text>
-          </TouchableOpacity>
+          <Pressable style={styles.errorsToggle} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setShowErrors((v) => !v);
+          }}>
+            <View style={styles.errorsToggleRow}>
+              {showErrors ? (
+                <ChevronUp size={14} strokeWidth={2.2} color={T.error} />
+              ) : (
+                <ChevronDown size={14} strokeWidth={2.2} color={T.error} />
+              )}
+              <Text style={styles.errorsToggleText}>
+                Ver {result.errors.length} error{result.errors.length !== 1 ? 'es' : ''} de insercion
+              </Text>
+            </View>
+          </Pressable>
           {showErrors && (
             <ScrollView style={styles.errorList} nestedScrollEnabled>
               {result.errors.map((err) => (
@@ -51,36 +67,69 @@ export function UploadReport({ result, onReset }: UploadReportProps) {
           )}
         </View>
       )}
-      <TouchableOpacity style={styles.resetBtn} onPress={onReset} activeOpacity={0.8}>
+      <Pressable style={styles.resetBtn} onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onReset();
+      }}>
         <Text style={styles.resetText}>Nueva carga</Text>
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', gap: Sizes.gapLg, paddingVertical: Sizes.paddingLg },
-  iconCircle: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center' },
+  container: {
+    alignItems: 'center', gap: Sizes.gapLg,
+    paddingVertical: Sizes.paddingLg,
+  },
+  iconCircle: {
+    width: 80, height: 80, borderRadius: 24,
+    justifyContent: 'center', alignItems: 'center',
+    ...Shadows.sm,
+  },
   iconCircleSuccess: { backgroundColor: T.successBg },
   iconCircleWarn: { backgroundColor: T.warningBg },
-  icon: { fontSize: 36 },
   title: { ...Typography.h3, color: T.textPrimary, textAlign: 'center' },
   statsRow: { flexDirection: 'row', gap: Sizes.gapMd, width: '100%' },
-  statCard: { flex: 1, borderRadius: Sizes.radiusMd, paddingVertical: 16, alignItems: 'center', gap: 4, borderWidth: 1, borderColor: T.cardBorder },
-  statCardTotal: { backgroundColor: T.inputBg },
+  statCard: {
+    flex: 1, borderRadius: Sizes.radiusLg,
+    paddingVertical: 16, alignItems: 'center', gap: 4,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  statCardTotal: { backgroundColor: T.surface },
   statCardSuccess: { backgroundColor: T.successBg },
   statCardError: { backgroundColor: T.errorBg },
   statValue: { ...Typography.h2, color: T.textPrimary },
   statValueSuccess: { color: T.success },
   statValueError: { color: T.error },
   statLabel: { ...Typography.caption, color: T.textSecondary },
-  errorsSection: { width: '100%', borderRadius: Sizes.radiusMd, borderWidth: 1, borderColor: T.cardBorder, overflow: 'hidden' },
-  errorsToggle: { padding: Sizes.paddingMd, backgroundColor: T.errorBg },
-  errorsToggleText: { ...Typography.bodySm, fontWeight: '700', color: T.error },
+  errorsSection: {
+    width: '100%', borderRadius: Sizes.radiusMd,
+    borderWidth: 1, borderColor: T.cardBorder, overflow: 'hidden',
+  },
+  errorsToggle: {
+    padding: Sizes.paddingMd, backgroundColor: T.errorBg,
+  },
+  errorsToggleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+  },
+  errorsToggleText: {
+    ...Typography.bodySm, fontWeight: '700', color: T.error,
+  },
   errorList: { maxHeight: 200 },
-  errorItem: { padding: Sizes.paddingMd, borderTopWidth: 1, borderTopColor: T.divider, gap: 2 },
-  errorItemIndex: { ...Typography.caption, fontWeight: '700', color: T.textSecondary },
+  errorItem: {
+    padding: Sizes.paddingMd, borderTopWidth: 1,
+    borderTopColor: T.divider, gap: 2,
+  },
+  errorItemIndex: {
+    ...Typography.caption, fontWeight: '700', color: T.textSecondary,
+  },
   errorItemReason: { ...Typography.bodySm, color: T.textPrimary },
-  resetBtn: { width: '100%', height: Sizes.btnHeight, borderRadius: Sizes.radiusMd, backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center' },
-  resetText: { ...Typography.button, color: '#fff' },
+  resetBtn: {
+    width: '100%', height: Sizes.btnHeight, borderRadius: Sizes.radiusMd,
+    backgroundColor: T.primary, justifyContent: 'center', alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
+  resetText: { ...Typography.button, color: '#FFFFFF' },
 });

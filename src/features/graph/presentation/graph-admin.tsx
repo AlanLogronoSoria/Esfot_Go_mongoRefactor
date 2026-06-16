@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, TextInput, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { Edit2, Trash2 } from 'lucide-react-native';
 import { useCampusGraph, useGraphNodeMutations, useGraphEdgeMutations } from '@/features/graph/application/graph.hooks';
 import type { GraphNode, GraphEdge } from '@/features/graph/domain/graph.entity';
-import { LightTheme as T, Shadows, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 export function GraphAdmin() {
   const { data: graph, isLoading } = useCampusGraph();
@@ -46,26 +47,28 @@ export function GraphAdmin() {
   return (
     <ScrollView contentContainerStyle={s.container}>
       <Text style={s.sectionTitle}>Nodos ({graph?.nodes.length ?? 0})</Text>
-      <TouchableOpacity style={s.addBtn} onPress={() => { resetNodeForm(); setShowNodeForm(true); }}>
+      <Pressable style={s.addBtn} onPress={() => { resetNodeForm(); setShowNodeForm(true); }}>
         <Text style={s.addBtnText}>+ Nodo</Text>
-      </TouchableOpacity>
+      </Pressable>
       {graph?.nodes.map((node) => (
         <View key={node.id} style={s.card}>
           <View style={s.cardBody}>
             <Text style={s.cardTitle}>{node.label}</Text>
             <Text style={s.cardSub}>{node.latitude.toFixed(4)}, {node.longitude.toFixed(4)}</Text>
           </View>
-          <TouchableOpacity onPress={() => startEditNode(node)}><Text style={s.editBtn}>✏️</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => Alert.alert('Eliminar nodo', `¿Eliminar "${node.label}" y sus aristas?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Eliminar', style: 'destructive', onPress: () => deleteNode.mutate(node.id) }])}>
-            <Text style={s.delBtn}>🗑️</Text>
-          </TouchableOpacity>
+          <Pressable onPress={() => startEditNode(node)}>
+            <Edit2 size={16} strokeWidth={2} color={T.primary} />
+          </Pressable>
+          <Pressable onPress={() => Alert.alert('Eliminar nodo', `Eliminar "${node.label}" y sus aristas?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Eliminar', style: 'destructive', onPress: () => deleteNode.mutate(node.id) }])}>
+            <Trash2 size={16} strokeWidth={2} color={T.error} />
+          </Pressable>
         </View>
       ))}
 
       <Text style={[s.sectionTitle, { marginTop: 20 }]}>Aristas ({graph?.edges.length ?? 0})</Text>
-      <TouchableOpacity style={s.addBtn} onPress={() => { resetEdgeForm(); setShowEdgeForm(true); }}>
+      <Pressable style={s.addBtn} onPress={() => { resetEdgeForm(); setShowEdgeForm(true); }}>
         <Text style={s.addBtnText}>+ Arista</Text>
-      </TouchableOpacity>
+      </Pressable>
       {graph?.edges.map((edge) => {
         const fromNode = graph.nodes.find((n) => n.id === edge.fromNodeId);
         const toNode = graph.nodes.find((n) => n.id === edge.toNodeId);
@@ -73,15 +76,17 @@ export function GraphAdmin() {
           <View key={edge.id} style={[s.card, edge.blocked && { opacity: 0.4 }]}>
             <View style={s.cardBody}>
               <Text style={s.cardTitle}>{fromNode?.label ?? edge.fromNodeId} → {toNode?.label ?? edge.toNodeId}</Text>
-              <Text style={s.cardSub}>{edge.weight}m · {edge.bidirectional ? '↔' : '→'} {edge.blocked ? '· BLOQUEADO' : ''}</Text>
+              <Text style={s.cardSub}>{edge.weight}m · {edge.bidirectional ? 'bidir' : 'unidir'} {edge.blocked ? '· BLOQUEADO' : ''}</Text>
             </View>
-            <TouchableOpacity onPress={() => startEditEdge(edge)}><Text style={s.editBtn}>✏️</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => toggleBlock(edge.id, edge.blocked)}>
-              <Text style={[s.actionBtn, { color: edge.blocked ? T.success : T.warning }]}>{edge.blocked ? '🔓' : '🔒'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => deleteEdge.mutate(edge.id)}>
-              <Text style={s.delBtn}>🗑️</Text>
-            </TouchableOpacity>
+            <Pressable onPress={() => startEditEdge(edge)}>
+              <Edit2 size={16} strokeWidth={2} color={T.primary} />
+            </Pressable>
+            <Pressable onPress={() => toggleBlock(edge.id, edge.blocked)}>
+              <Text style={[s.actionBtn, { color: edge.blocked ? T.success : T.warning }]}>{edge.blocked ? 'Desbloq' : 'Bloq'}</Text>
+            </Pressable>
+            <Pressable onPress={() => deleteEdge.mutate(edge.id)}>
+              <Trash2 size={16} strokeWidth={2} color={T.error} />
+            </Pressable>
           </View>
         );
       })}
@@ -95,8 +100,8 @@ export function GraphAdmin() {
             <TextInput style={[s.input, s.half]} placeholder="Longitud" placeholderTextColor={T.inputPlaceholder} value={nLng} onChangeText={setNLng} keyboardType="numeric" />
           </View>
           <View style={s.formActions}>
-            <TouchableOpacity style={s.saveBtn} onPress={handleNodeSave}><Text style={s.saveText}>Guardar</Text></TouchableOpacity>
-            <TouchableOpacity style={s.cancelBtn} onPress={resetNodeForm}><Text style={s.cancelText}>Cancelar</Text></TouchableOpacity>
+            <Pressable style={s.saveBtn} onPress={handleNodeSave}><Text style={s.saveText}>Guardar</Text></Pressable>
+            <Pressable style={s.cancelBtn} onPress={resetNodeForm}><Text style={s.cancelText}>Cancelar</Text></Pressable>
           </View>
         </View>
       )}
@@ -108,8 +113,8 @@ export function GraphAdmin() {
           <TextInput style={s.input} placeholder="ID nodo destino" placeholderTextColor={T.inputPlaceholder} value={eTo} onChangeText={setETo} />
           <TextInput style={s.input} placeholder="Peso (metros)" placeholderTextColor={T.inputPlaceholder} value={eWeight} onChangeText={setEWeight} keyboardType="numeric" />
           <View style={s.formActions}>
-            <TouchableOpacity style={s.saveBtn} onPress={handleEdgeSave}><Text style={s.saveText}>Guardar</Text></TouchableOpacity>
-            <TouchableOpacity style={s.cancelBtn} onPress={resetEdgeForm}><Text style={s.cancelText}>Cancelar</Text></TouchableOpacity>
+            <Pressable style={s.saveBtn} onPress={handleEdgeSave}><Text style={s.saveText}>Guardar</Text></Pressable>
+            <Pressable style={s.cancelBtn} onPress={resetEdgeForm}><Text style={s.cancelText}>Cancelar</Text></Pressable>
           </View>
         </View>
       )}
@@ -119,24 +124,45 @@ export function GraphAdmin() {
 
 const s = StyleSheet.create({
   container: { padding: 16, gap: 10, paddingBottom: 60 },
-  sectionTitle: { fontSize: 20, fontWeight: '800', color: T.textPrimary },
-  addBtn: { alignSelf: 'flex-start', backgroundColor: T.primary, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  addBtnText: { fontSize: 13, fontWeight: '700', color: T.text },
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: T.surface, borderRadius: 12, padding: 12, gap: 8, ...Shadows.sm },
+  sectionTitle: { ...Typography.h3, color: T.textPrimary },
+  addBtn: {
+    alignSelf: 'flex-start', backgroundColor: T.primary,
+    borderRadius: Sizes.radiusSm, paddingHorizontal: 16, paddingVertical: 10,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
+  },
+  addBtnText: { ...Typography.caption, fontWeight: '700', color: '#FFFFFF' },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
+    padding: 12, gap: 8, borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
   cardBody: { flex: 1 },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: T.textPrimary },
-  cardSub: { fontSize: 11, color: T.textSecondary, marginTop: 2 },
-  editBtn: { fontSize: 18, paddingHorizontal: 4 },
-  actionBtn: { fontSize: 18, paddingHorizontal: 4 },
-  delBtn: { fontSize: 18, paddingHorizontal: 4 },
-  form: { backgroundColor: T.surface, borderRadius: 14, padding: 14, gap: 10, ...Shadows.md },
-  formTitle: { fontSize: 16, fontWeight: '700', color: T.textPrimary },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: 10, padding: 12, fontSize: 14, color: T.inputText },
+  cardTitle: { ...Typography.body, fontWeight: '700', color: T.textPrimary },
+  cardSub: { ...Typography.caption, color: T.textSecondary, marginTop: 2 },
+  actionBtn: { ...Typography.caption, fontWeight: '700', paddingHorizontal: 4 },
+  form: {
+    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
+    padding: 14, gap: 10, borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.md,
+  },
+  formTitle: { ...Typography.h4, color: T.textPrimary },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 12, fontSize: 14, color: T.inputText,
+  },
   row: { flexDirection: 'row', gap: 10 },
   half: { flex: 1 },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  saveBtn: { flex: 1, backgroundColor: T.primary, borderRadius: 10, padding: 14, alignItems: 'center' },
-  saveText: { fontSize: 14, fontWeight: '700', color: T.text },
-  cancelBtn: { flex: 1, backgroundColor: T.surface, borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder },
-  cancelText: { fontSize: 14, color: T.textSecondary },
+  saveBtn: {
+    flex: 1, backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 14, alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
+  saveText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
+  cancelBtn: {
+    flex: 1, backgroundColor: T.surface, borderRadius: Sizes.radiusSm,
+    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder,
+  },
+  cancelText: { ...Typography.body, color: T.textSecondary, fontWeight: '600' },
 });

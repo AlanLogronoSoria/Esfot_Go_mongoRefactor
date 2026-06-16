@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useAdminBusRoutes } from '@/features/polibus/application/bus.hooks';
 import type { BusRoute, BusStop } from '@/features/polibus/domain/route.entity';
-import { DarkTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { Edit2, Trash2, Bus } from 'lucide-react-native';
 import { AppCard } from '@/components/ui/app-card';
 import { AppButton } from '@/components/ui/app-button';
@@ -67,7 +67,7 @@ export function BusRoutesAdmin() {
       </View>
 
       {routes.map((route) => (
-        <AppCard key={route.id} style={[!route.isActive && { opacity: 0.5 }, { gap: 10, marginBottom: 8 }]}>
+        <AppCard key={route.id} style={[!route.isActive && { opacity: 0.5 }, s.routeCard]}>
           <View style={s.cardHeader}>
             <View style={[s.colorDot, { backgroundColor: route.color }]} />
             <View style={{ flex: 1 }}>
@@ -125,12 +125,17 @@ const s = StyleSheet.create({
   title: { ...Typography.h3, color: T.textPrimary },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   colorDot: { width: 14, height: 14, borderRadius: 7 },
-  routeName: { fontSize: 15, fontWeight: '700', color: T.textPrimary },
-  routeDesc: { fontSize: 12, color: T.textSecondary, marginTop: 2 },
+  routeName: { ...Typography.body, fontWeight: '700', color: T.textPrimary },
+  routeDesc: { ...Typography.caption, color: T.textSecondary, marginTop: 2 },
   routeActions: { flexDirection: 'row', gap: 4 },
+  routeCard: { gap: 10, marginBottom: 8 },
   stopSection: { borderTopWidth: 1, borderTopColor: T.cardBorder, paddingTop: 8 },
-  formTitle: { ...Typography.h4, color: T.textPrimary, marginBottom: 4 },
-  input: { backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder, borderRadius: Sizes.radiusMd, padding: 12, fontSize: 14, color: T.inputText },
+  formTitle: { ...Typography.h4, color: T.textPrimary, marginBottom: 2 },
+  input: {
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 12,
+    fontSize: 14, color: T.inputText,
+  },
   half: { flex: 1 },
   row: { flexDirection: 'row', gap: 10 },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },

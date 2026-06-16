@@ -1,10 +1,12 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  View, Text, TextInput as RNInput, TouchableOpacity,
-  StyleSheet, ActivityIndicator, ScrollView, Alert,
+  View, Text, TextInput as RNInput, Pressable,
+  StyleSheet, ActivityIndicator, ScrollView,
 } from 'react-native';
 import { useState, useCallback } from 'react';
+import * as Haptics from 'expo-haptics';
+import Toast from 'react-native-toast-message';
 import { aulaFormSchema, ESTADO_AULA_OPTIONS } from '../domain/aula.schema';
 import type { AulaFormInput, AulaEstado } from '../domain/aula.schema';
 import type { Aula } from '@/services/express/express-types';
@@ -56,7 +58,7 @@ export function AulaForm({ onClose, onSuccess, editData }: AulaFormProps) {
       onSuccess?.();
       onClose();
     } catch (error) {
-      Alert.alert('Error', error instanceof Error ? error.message : 'Ocurrió un error inesperado');
+      Toast.show({ type: 'error', text1: 'Error', text2: error instanceof Error ? error.message : 'Ocurrió un error inesperado' });
     }
   }, [isEdit, editData, createMutation, updateMutation, onSuccess, onClose]);
 
@@ -114,23 +116,27 @@ export function AulaForm({ onClose, onSuccess, editData }: AulaFormProps) {
           <Text style={styles.label}>Estado</Text>
           <View style={styles.estadoRow}>
             {ESTADO_AULA_OPTIONS.map((opt) => (
-              <TouchableOpacity key={opt.value}
+              <Pressable key={opt.value}
                 style={[styles.estadoChip, selectedEstado === opt.value && styles.estadoChipOn]}
-                onPress={() => handleEstadoSelect(opt.value)} activeOpacity={0.7}>
+                onPress={() => handleEstadoSelect(opt.value)}>
                 <Text style={[styles.estadoChipText, selectedEstado === opt.value && styles.estadoChipTextOn]}>
-                  {opt.emoji} {opt.label}
+                  {opt.label}
                 </Text>
-              </TouchableOpacity>
+              </Pressable>
             ))}
           </View>
           {errors.estado && <Text style={styles.fieldErr}>{errors.estado.message}</Text>}
         </View>
 
-        <TouchableOpacity style={[styles.btn, (!isDirty || isLoading) && styles.btnOff]}
-          onPress={handleSubmit(onSubmit)} disabled={!isDirty || isLoading} activeOpacity={0.85}>
-          {isLoading ? <ActivityIndicator color={T.text} /> :
+        <Pressable style={[styles.btn, (!isDirty || isLoading) && styles.btnOff]}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleSubmit(onSubmit)();
+          }}
+          disabled={!isDirty || isLoading}>
+          {isLoading ? <ActivityIndicator color="#FFFFFF" /> :
             <Text style={styles.btnT}>{isEdit ? 'Guardar cambios' : 'Crear aula'}</Text>}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </ScrollView>
   );
@@ -161,7 +167,11 @@ const styles = StyleSheet.create({
   estadoChipOn: { backgroundColor: T.primaryMuted, borderColor: T.primary },
   estadoChipText: { fontSize: 13, fontWeight: '600', color: T.textSecondary },
   estadoChipTextOn: { color: T.primary },
-  btn: { backgroundColor: T.primary, borderRadius: Sizes.radiusMd, padding: 16, alignItems: 'center', marginTop: 8, ...Shadows.glow },
+  btn: {
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
   btnOff: { opacity: 0.5 },
-  btnT: { ...Typography.button, color: T.text },
+  btnT: { ...Typography.button, color: '#FFFFFF' },
 });

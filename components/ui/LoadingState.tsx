@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import Animated, { FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
-import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
+import Animated, {
+  FadeIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming,
+} from 'react-native-reanimated';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 interface LoadingStateProps {
   message?: string;
@@ -37,9 +39,9 @@ function SkeletonCard({ delay }: { delay: number }) {
 
   React.useEffect(() => {
     opacity.value = withRepeat(
-      withTiming(0.4, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+      withTiming(0.4, { duration: 800 }),
       -1,
-      true
+      true,
     );
   }, [opacity]);
 
@@ -69,48 +71,31 @@ const styles = StyleSheet.create({
     gap: Sizes.gapMd,
   },
   spinnerWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 72, height: 72, borderRadius: 36,
     backgroundColor: T.primaryMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
+    ...Shadows.sm,
   },
-  message: {
-    ...Typography.bodySm,
-    color: T.textSecondary,
-    textAlign: 'center',
-  },
+  message: { ...Typography.bodySm, color: T.textSecondary, textAlign: 'center' },
   skeletonContainer: {
-    padding: Sizes.paddingMd,
-    gap: Sizes.gapMd,
+    padding: Sizes.paddingMd, gap: Sizes.gapMd,
   },
   skeletonCard: {
-    backgroundColor: T.surface,
-    borderRadius: Sizes.radiusLg,
-    padding: Sizes.paddingMd,
-    gap: Sizes.gapMd,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusXl,
+    padding: Sizes.paddingMd, gap: Sizes.gapMd,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
   },
   skeletonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Sizes.gapMd,
+    flexDirection: 'row', alignItems: 'center', gap: Sizes.gapMd,
   },
   skeletonCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: T.neutralMuted,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: T.skeleton,
   },
-  skeletonLines: {
-    flex: 1,
-    gap: 8,
-  },
+  skeletonLines: { flex: 1, gap: 8 },
   skeletonLine: {
-    height: 14,
-    backgroundColor: T.neutralMuted,
-    borderRadius: 6,
+    height: 14, backgroundColor: T.skeleton, borderRadius: 8,
   },
 });

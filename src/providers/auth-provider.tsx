@@ -3,13 +3,8 @@ import type { ReactNode } from 'react';
 import { useAuthStore } from '@/store/auth.store';
 import { useExpressAuthStore } from '@/services/express/express-auth.store';
 import {
-  ActivityIndicator,
-  View,
-  StyleSheet,
-  Text,
-  AppState,
-  TouchableOpacity,
-  Modal,
+  ActivityIndicator, View, StyleSheet, Text,
+  AppState, Pressable, Modal,
 } from 'react-native';
 import type { AppStateStatus } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -125,11 +120,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isInitialized || !user) return;
 
     sessionCheckIntervalRef.current = setInterval(() => {
-      validateCurrentSession().then((valid) => {
-        if (!valid) {
-          performTokenRefresh();
-        }
-      });
+      validateCurrentSession()
+        .then((valid) => {
+          if (!valid) {
+            performTokenRefresh();
+          }
+        })
+        .catch((err) => {
+          console.log('[AuthProvider] Error validando sesión en intervalo:', (err as Error)?.message ?? err);
+        });
     }, SESSION_CHECK_INTERVAL_MS);
 
     return () => {
@@ -209,23 +208,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             <Text style={styles.modalDescription}>
               Tu sesión está por expirar por inactividad. Toca &quot;Continuar&quot; para mantener tu sesión activa.
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.modalPrimaryButton}
               onPress={extendSession}
-              activeOpacity={0.8}
             >
               <Text style={styles.modalPrimaryButtonText}>Continuar sesión</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </Pressable>
+            <Pressable
               style={styles.modalSecondaryButton}
               onPress={() => {
                 setSessionExpiryWarning(false);
                 secureLogout();
               }}
-              activeOpacity={0.7}
             >
               <Text style={styles.modalSecondaryButtonText}>Cerrar sesión</Text>
-            </TouchableOpacity>
+            </Pressable>
           </Animated.View>
         </Animated.View>
       </Modal>

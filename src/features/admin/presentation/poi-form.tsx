@@ -1,17 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
+  View, Text, TextInput, ScrollView,
+  Pressable, StyleSheet, ActivityIndicator,
 } from 'react-native';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import type { PoiInput, PoiUpdateInput } from '@/features/admin/domain/poi.entity';
 import { getAllCategories } from '@/features/map/application/map.hooks';
-import { DarkTheme as T } from '@/constants/design-system';
+import * as Haptics from 'expo-haptics';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 interface PoiFormProps {
   initialCoordinate?: { latitude: number; longitude: number };
@@ -102,131 +98,94 @@ export function PoiForm({
         <Text style={styles.label}>Categoría</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {categories.map((cat) => (
-            <TouchableOpacity
+            <Pressable
               key={cat.key}
               style={[
                 styles.chip,
                 category === cat.key && { backgroundColor: cat.color, borderColor: cat.color },
               ]}
               onPress={() => setCategory(cat.key)}
-              activeOpacity={0.7}
             >
-              <Text style={styles.chipEmoji}>{cat.icon}</Text>
+              <View style={[styles.chipLetterWrap, category === cat.key && { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
+                <Text style={[styles.chipLetter, { color: category === cat.key ? '#FFFFFF' : cat.color }]}>
+                  {cat.label.charAt(0)}
+                </Text>
+              </View>
               <Text style={[styles.chipText, category === cat.key && styles.chipTextActive]}>
                 {cat.label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </ScrollView>
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.cancelBtn} onPress={onCancel} activeOpacity={0.7}>
+        <Pressable
+          style={styles.cancelBtn}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onCancel();
+          }}
+        >
           <Text style={styles.cancelText}>Cancelar</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+        </Pressable>
+        <Pressable
           style={[styles.saveBtn, !name.trim() && styles.saveBtnDisabled]}
-          onPress={handleSubmit}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleSubmit();
+          }}
           disabled={isLoading || !name.trim()}
-          activeOpacity={0.8}
         >
           {isLoading ? (
-            <ActivityIndicator color={T.surface} size="small" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <Text style={styles.saveText}>{isEditing ? 'Actualizar' : 'Guardar'}</Text>
           )}
-        </TouchableOpacity>
+        </Pressable>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 14,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: T.textPrimary,
-  },
-  field: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: T.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  container: { gap: 16 },
+  title: { ...Typography.h4, color: T.textPrimary },
+  field: { gap: 6 },
+  label: { ...Typography.overline, color: T.textSecondary },
   input: {
-    backgroundColor: T.surface,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    color: T.textPrimary,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
+    backgroundColor: T.inputBg, borderRadius: Sizes.radiusSm,
+    padding: 13, fontSize: 14, color: T.inputText,
+    borderWidth: 1.5, borderColor: T.inputBorder,
   },
-  textarea: {
-    height: 72,
-    textAlignVertical: 'top',
-  },
-  chips: {
-    gap: 6,
-  },
+  textarea: { height: 80, textAlignVertical: 'top' },
+  chips: { gap: 8 },
   chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: T.surface,
-    borderRadius: 18,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: T.surface, borderRadius: Sizes.radiusFull,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
   },
-  chipEmoji: {
-    fontSize: 13,
+  chipLetterWrap: {
+    width: 22, height: 22, borderRadius: 7,
+    justifyContent: 'center', alignItems: 'center',
   },
-  chipText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
-  chipTextActive: {
-    color: T.surface,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+  chipLetter: { fontSize: 11, fontWeight: '800' },
+  chipText: { ...Typography.caption, color: T.textSecondary },
+  chipTextActive: { color: '#FFFFFF' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   cancelBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: T.inputBg,
-    alignItems: 'center',
+    flex: 1, padding: 14, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.surfaceBorder, alignItems: 'center',
+    borderWidth: 1, borderColor: T.cardBorder,
   },
-  cancelText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
+  cancelText: { ...Typography.body, fontWeight: '600', color: T.textSecondary },
   saveBtn: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 10,
-    backgroundColor: T.primary,
-    alignItems: 'center',
+    flex: 1, padding: 14, borderRadius: Sizes.radiusSm,
+    backgroundColor: T.primary, alignItems: 'center',
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
   },
-  saveBtnDisabled: {
-    opacity: 0.5,
-  },
-  saveText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: T.surface,
-  },
+  saveBtnDisabled: { opacity: 0.5 },
+  saveText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
 });

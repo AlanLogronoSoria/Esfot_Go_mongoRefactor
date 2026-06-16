@@ -1,14 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, ActivityIndicator,
-  Alert, TouchableOpacity, Modal,
+  View, Text, StyleSheet, ActivityIndicator,
+  Alert, Pressable, Modal,
 } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
 import { useAulas } from '@/features/aulas/application/aulas.hooks';
 import { useDeleteAula } from '@/features/aulas/application/aulas-admin.hooks';
 import { AulaForm } from './aula-form';
 import type { Aula } from '@/services/express/express-types';
-import { LightTheme as T, Typography } from '@/constants/design-system';
-import { Edit2, Trash2, DoorOpen } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import { LightTheme as T, Sizes, Typography, Shadows } from '@/constants/design-system';
+import { Edit2, Trash2, DoorOpen, X } from 'lucide-react-native';
 import { AppCard } from '@/components/ui/app-card';
 import { AppButton } from '@/components/ui/app-button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -52,16 +54,19 @@ export function AulasAdmin() {
     <View style={s.container}>
       <View style={s.header}>
         <Text style={s.title}>Aulas ({aulasList.length})</Text>
-        <TouchableOpacity style={s.createBtn} onPress={handleCreate} activeOpacity={0.8}>
+        <Pressable style={s.createBtn} onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          handleCreate();
+        }}>
           <Text style={s.createBtnText}>+ Crear</Text>
-        </TouchableOpacity>
+        </Pressable>
       </View>
 
       {isLoading && (
         <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 20 }} />
       )}
 
-      <FlatList
+      <FlashList
         data={aulasList}
         keyExtractor={(item) => item._id}
         renderItem={({ item }) => (
@@ -96,10 +101,6 @@ export function AulasAdmin() {
             />
           ) : null
         }
-        removeClippedSubviews
-        maxToRenderPerBatch={10}
-        windowSize={5}
-        initialNumToRender={10}
       />
 
       <Modal
@@ -110,9 +111,9 @@ export function AulasAdmin() {
       >
         <View style={s.modalHeader}>
           <Text style={s.modalTitle}>{editTarget ? 'Editar aula' : 'Crear aula'}</Text>
-          <TouchableOpacity onPress={handleCloseForm} style={s.modalCloseBtn}>
-            <Text style={s.modalCloseBtnText}>✕</Text>
-          </TouchableOpacity>
+          <Pressable onPress={handleCloseForm} style={s.modalCloseBtn}>
+            <X size={16} strokeWidth={2.2} color={T.textSecondary} />
+          </Pressable>
         </View>
         <AulaForm
           onClose={handleCloseForm}
@@ -126,28 +127,45 @@ export function AulasAdmin() {
 
 const s = StyleSheet.create({
   container: { flex: 1, padding: 16 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  header: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginBottom: 12,
+  },
   title: { ...Typography.h3, color: T.textPrimary },
   createBtn: {
-    backgroundColor: T.primary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    paddingHorizontal: 16, paddingVertical: 10,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.25,
   },
-  createBtnText: { fontSize: 13, fontWeight: '700', color: T.text },
+  createBtnText: { ...Typography.caption, fontWeight: '700', color: '#FFFFFF' },
   list: { paddingBottom: 40 },
-  cardWrapper: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, padding: 14 },
+  cardWrapper: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: 8, padding: 14,
+  },
   cardContent: { flex: 1 },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: T.textPrimary },
-  cardMeta: { fontSize: 12, color: T.textSecondary, marginTop: 2 },
-  estadoBadge: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, marginTop: 6 },
-  estadoDisponible: { backgroundColor: 'rgba(48,209,88,0.15)' },
-  estadoOcupado: { backgroundColor: 'rgba(255,69,58,0.15)' },
-  estadoMantenimiento: { backgroundColor: 'rgba(255,214,10,0.15)' },
-  estadoText: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize', color: T.textSecondary },
+  cardTitle: { ...Typography.body, fontWeight: '700', color: T.textPrimary },
+  cardMeta: { ...Typography.caption, color: T.textSecondary, marginTop: 2 },
+  estadoBadge: {
+    alignSelf: 'flex-start', borderRadius: 6,
+    paddingHorizontal: 8, paddingVertical: 2, marginTop: 6,
+  },
+  estadoDisponible: { backgroundColor: T.successBg },
+  estadoOcupado: { backgroundColor: T.errorBg },
+  estadoMantenimiento: { backgroundColor: T.warningBg },
+  estadoText: {
+    ...Typography.caption, fontWeight: '600', textTransform: 'capitalize',
+    color: T.textSecondary,
+  },
   actions: { flexDirection: 'row', gap: 4 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8,
+  },
   modalTitle: { ...Typography.h3, color: T.textPrimary },
-  modalCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: T.surface, justifyContent: 'center', alignItems: 'center' },
-  modalCloseBtnText: { fontSize: 16, fontWeight: '700', color: T.textSecondary },
+  modalCloseBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: T.surfaceBorder,
+    justifyContent: 'center', alignItems: 'center',
+  },
 });

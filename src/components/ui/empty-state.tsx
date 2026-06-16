@@ -4,7 +4,7 @@ import { LightTheme as T, Sizes, Typography } from '@/constants/design-system';
 import { AppButton } from './app-button';
 
 interface EmptyStateProps {
-  icon: any; // Lucide Icon component
+  icon: any;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -15,7 +15,7 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, onActi
   return (
     <View style={styles.container}>
       <View style={styles.iconBox}>
-        <Icon size={32} color={T.textTertiary} />
+        <Icon size={28} color={T.textTertiary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       {description && <Text style={styles.description}>{description}</Text>}
@@ -30,31 +30,22 @@ export function EmptyState({ icon: Icon, title, description, actionLabel, onActi
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: Sizes.paddingXl,
-    marginVertical: Sizes.gapLg,
+    alignItems: 'center', justifyContent: 'center',
+    padding: Sizes.paddingXl, marginVertical: Sizes.gapXl,
   },
   iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: T.surfaceBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 72, height: 72, borderRadius: 20,
+    backgroundColor: T.primaryMuted,
+    alignItems: 'center', justifyContent: 'center',
     marginBottom: Sizes.gapMd,
   },
   title: {
-    ...Typography.h4,
-    color: T.textSecondary,
-    marginBottom: 4,
-    textAlign: 'center',
+    ...Typography.h4, color: T.textSecondary,
+    marginBottom: 4, textAlign: 'center',
   },
   description: {
-    ...Typography.bodySm,
-    color: T.textTertiary,
-    textAlign: 'center',
-    maxWidth: 250,
+    ...Typography.bodySm, color: T.textTertiary,
+    textAlign: 'center', maxWidth: 280, lineHeight: 20,
   },
   actionWrap: {
     marginTop: Sizes.gapLg,

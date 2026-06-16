@@ -1,24 +1,87 @@
 import React, { memo } from 'react';
-import { ScrollView, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { ScrollView, Text, StyleSheet, Pressable } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { getAllCategories } from '@/features/map/application/map.hooks';
 import { LightTheme as T, Sizes, Shadows } from '@/constants/design-system';
 
-interface CategoryFilterProps { selectedCategory: string | undefined; onSelectCategory: (c: string | undefined) => void; }
+interface CategoryFilterProps {
+  selectedCategory: string | undefined;
+  onSelectCategory: (c: string | undefined) => void;
+}
 
-export const CategoryFilter = memo(function CategoryFilter({ selectedCategory, onSelectCategory }: CategoryFilterProps) {
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function FilterChip({
+  active,
+  letter,
+  label,
+  color,
+  onPress,
+}: {
+  active: boolean;
+  letter: string;
+  label: string;
+  color: string;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  return (
+    <AnimatedPressable
+      style={[s.chip, active && { backgroundColor: color, borderColor: color, ...Shadows.md, shadowColor: color, shadowOpacity: 0.3 }]}
+      onPressIn={() => { scale.value = withSpring(0.94, { damping: 20, stiffness: 400 }); }}
+      onPressOut={() => {
+        scale.value = withSpring(1, { damping: 18, stiffness: 300 });
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        onPress();
+      }}
+    >
+      <Animated.View style={[s.chipLetterWrap, { backgroundColor: active ? 'rgba(255,255,255,0.22)' : color + '18' }, animStyle]}>
+        <Text style={[s.chipLetter, { color: active ? '#FFFFFF' : color }]}>{letter}</Text>
+      </Animated.View>
+      <Text style={[s.ct, active && s.ctOn]}>{label}</Text>
+    </AnimatedPressable>
+  );
+}
+
+export const CategoryFilter = memo(function CategoryFilter({
+  selectedCategory,
+  onSelectCategory,
+}: CategoryFilterProps) {
   const cats = getAllCategories();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 48 }} contentContainerStyle={s.c}>
-      <TouchableOpacity style={[s.chip, !selectedCategory && s.chipOn]} onPress={() => onSelectCategory(undefined)} activeOpacity={0.7}>
-        <Text style={[s.ct, !selectedCategory && s.ctOn]}>Todos</Text>
-      </TouchableOpacity>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ maxHeight: 48 }}
+      contentContainerStyle={s.row}
+    >
+      <FilterChip
+        active={!selectedCategory}
+        letter="T"
+        label="Todos"
+        color={T.primary}
+        onPress={() => onSelectCategory(undefined)}
+      />
       {cats.map((cat) => {
         const active = selectedCategory === cat.key;
         return (
-          <TouchableOpacity key={cat.key} style={[s.chip, active && { backgroundColor: cat.color, borderColor: cat.color }]} onPress={() => onSelectCategory(active ? undefined : cat.key)} activeOpacity={0.7}>
-            <Text style={s.ce}>{cat.icon}</Text>
-            <Text style={[s.ct, active && s.ctOn]}>{cat.label}</Text>
-          </TouchableOpacity>
+          <FilterChip
+            key={cat.key}
+            active={active}
+            letter={cat.label.charAt(0)}
+            label={cat.label}
+            color={cat.color}
+            onPress={() => onSelectCategory(active ? undefined : cat.key)}
+          />
         );
       })}
     </ScrollView>
@@ -26,10 +89,22 @@ export const CategoryFilter = memo(function CategoryFilter({ selectedCategory, o
 });
 
 const s = StyleSheet.create({
-  c: { gap: 8, paddingHorizontal: 12 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusFull, paddingHorizontal: 14, paddingVertical: 8, borderWidth: 1, borderColor: T.cardBorder, ...Shadows.sm },
-  chipOn: { backgroundColor: T.primary, borderColor: T.primary },
-  ce: { fontSize: 14 },
+  row: { gap: 10, paddingHorizontal: 14 },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusFull,
+    paddingHorizontal: 14, paddingVertical: 9,
+    borderWidth: 1, borderColor: T.cardBorder,
+    ...Shadows.sm,
+  },
+  chipLetterWrap: {
+    width: 24, height: 24, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  chipLetter: {
+    fontSize: 12, fontWeight: '800',
+  },
   ct: { fontSize: 13, fontWeight: '600', color: T.textPrimary },
   ctOn: { color: '#FFFFFF' },
 });

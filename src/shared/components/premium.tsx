@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, type ViewProps } from 'react-native';
-import { DarkTheme as T, Shadows, Sizes, Typography, Glass } from '@/constants/design-system';
+import { View, Text, TextInput, Pressable, StyleSheet, ActivityIndicator, type ViewProps } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { LightTheme as T, Shadows, Sizes, Typography, Glass } from '@/constants/design-system';
 
 interface GlassCardProps extends ViewProps {
   variant?: 'default' | 'glow' | 'flat';
@@ -20,7 +21,7 @@ interface GlassInputProps {
   value: string;
   onChangeText: (t: string) => void;
   error?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   secureTextEntry?: boolean;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   autoCapitalize?: 'none' | 'words';
@@ -34,7 +35,7 @@ export const GlassInput = memo(function GlassInput({ placeholder, value, onChang
   const [focused, setFocused] = useState(false);
   return (
     <View style={[ss.inputWrap, focused && ss.inputFocused, error && ss.inputError]}>
-      {icon && <Text style={ss.inputIcon}>{icon}</Text>}
+      {icon && (typeof icon === 'string' ? <Text style={ss.inputIconText}>{icon}</Text> : <View style={ss.inputIcon}>{icon}</View>)}
       <TextInput
         style={ss.input}
         placeholder={placeholder}
@@ -66,16 +67,19 @@ export const GlassButton = memo(function GlassButton({ title, onPress, variant =
   const btnStyle = variant === 'primary' ? ss.btnPrimary : variant === 'secondary' ? ss.btnSecondary : variant === 'outline' ? ss.btnOutline : ss.btnGhost;
   const textStyle = (variant === 'outline' || variant === 'ghost') ? ss.btnTextOutline : ss.btnText;
   return (
-    <TouchableOpacity style={[ss.btn, btnStyle, disabled && ss.btnDisabled]} onPress={onPress} disabled={disabled || loading} activeOpacity={0.85}>
+    <Pressable style={[ss.btn, btnStyle, disabled && ss.btnDisabled]} onPress={() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress();
+    }} disabled={disabled || loading}>
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? T.primary : T.text} />
+        <ActivityIndicator color={variant === 'outline' || variant === 'ghost' ? T.primary : '#FFFFFF'} />
       ) : (
         <View style={ss.btnRow}>
           {icon && <Text style={ss.btnIcon}>{icon}</Text>}
           <Text style={textStyle}>{title}</Text>
         </View>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 });
 
@@ -83,7 +87,7 @@ export const SectionHeader = memo(function SectionHeader({ title, action }: { ti
   return (
     <View style={ss.sectionHeader}>
       <Text style={ss.sectionTitle}>{title}</Text>
-      {action && <TouchableOpacity onPress={action.onPress} activeOpacity={0.7}><Text style={ss.sectionAction}>{action.label}</Text></TouchableOpacity>}
+      {action && <Pressable onPress={action.onPress}><Text style={ss.sectionAction}>{action.label}</Text></Pressable>}
     </View>
   );
 });
@@ -98,7 +102,7 @@ export const Badge = memo(function Badge({ label, color = T.primary, variant = '
 
 const ss = StyleSheet.create({
   base: { borderRadius: Sizes.radiusLg, borderWidth: 1, borderColor: T.cardBorder, overflow: 'hidden' as const },
-  glassBg: { backgroundColor: Glass.bg },
+  glassBg: { backgroundColor: Glass.lightBg },
   default: { ...Shadows.md },
   glow: { ...Shadows.glow },
   flat: {},
@@ -111,17 +115,18 @@ const ss = StyleSheet.create({
   inputFocused: { borderColor: T.inputBorderFocus, borderWidth: 1.5, backgroundColor: T.inputBg },
   inputError: { borderColor: T.error },
   input: { flex: 1, fontSize: 15, color: T.inputText, paddingVertical: 0 },
-  inputIcon: { fontSize: 16, marginRight: 10 },
+  inputIcon: { width: 20, alignItems: 'center', marginRight: 10 },
+  inputIconText: { fontSize: 18, marginRight: 10 },
 
   btn: { height: Sizes.btnHeight, borderRadius: Sizes.radiusMd, justifyContent: 'center', alignItems: 'center' },
-  btnPrimary: { backgroundColor: T.primary, ...Shadows.glow },
-  btnSecondary: { backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder },
+  btnPrimary: { backgroundColor: T.primary, ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3 },
+  btnSecondary: { backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder, ...Shadows.sm },
   btnOutline: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: T.primary },
   btnGhost: { backgroundColor: 'transparent' },
   btnDisabled: { opacity: 0.4 },
   btnRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   btnIcon: { fontSize: 18 },
-  btnText: { ...Typography.button, color: T.text },
+  btnText: { ...Typography.button, color: '#FFFFFF' },
   btnTextOutline: { ...Typography.button, color: T.primary },
 
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Sizes.paddingSm },

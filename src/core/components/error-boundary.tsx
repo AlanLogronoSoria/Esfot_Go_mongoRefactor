@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { DarkTheme as T, Typography, Sizes } from '@/constants/design-system';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { LightTheme as T, Typography, Sizes, Shadows } from '@/constants/design-system';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -43,13 +43,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             <Text style={styles.detail} numberOfLines={3}>
               {this.state.error?.message ?? 'Error desconocido'}
             </Text>
-            <TouchableOpacity
+            <Pressable
               style={styles.button}
               onPress={this.handleRetry}
-              activeOpacity={0.8}
             >
               <Text style={styles.buttonText}>Reintentar</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       );
@@ -69,7 +68,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: T.surface,
-    borderRadius: Sizes.radiusLg,
+    borderRadius: Sizes.radiusXl,
     padding: Sizes.paddingXl,
     alignItems: 'center',
     gap: 16,
@@ -77,6 +76,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderWidth: 1,
     borderColor: T.cardBorder,
+    ...Shadows.lg,
   },
   icon: {
     fontSize: 48,

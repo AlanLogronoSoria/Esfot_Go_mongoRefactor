@@ -1,10 +1,11 @@
 import React, { memo, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import type { RouteCalculation } from '@/features/map/services/route-calculator';
 import { formatRouteInfo } from '@/features/map/services/route-calculator';
 import type { GraphRouteResult } from '@/features/graph/application/graph-route.service';
 import { formatGraphRouteInfo } from '@/features/graph/application/graph-route.service';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { Navigation, X } from 'lucide-react-native';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 interface RouteInfoCardProps {
@@ -32,27 +33,30 @@ export const RouteInfoCard = memo(
       >
         <View style={styles.content}>
           <View style={styles.iconWrap}>
-            <Text style={styles.icon}>{graphRoute ? '🛤️' : '⏱'}</Text>
+            <Navigation size={20} strokeWidth={1.8} color={T.primary} />
           </View>
           <View style={styles.info}>
             <Text style={styles.label}>Llegada estimada</Text>
             <Text style={styles.value}>
-              {info.etaLabel} <Text style={styles.distance}>({info.distanceLabel})</Text>
+              {info.etaLabel}{' '}
+              <Text style={styles.distance}>({info.distanceLabel})</Text>
             </Text>
             {info.directionLabel && (
               <Text style={styles.direction}>{info.directionLabel}</Text>
             )}
           </View>
         </View>
-        <TouchableOpacity style={styles.clearBtn} onPress={onClear} activeOpacity={0.7}>
-          <Text style={styles.clearBtnText}>✕</Text>
-        </TouchableOpacity>
+        <Pressable style={styles.clearBtn} onPress={onClear} hitSlop={8}>
+          <X size={14} strokeWidth={2.2} color={T.textSecondary} />
+        </Pressable>
       </Animated.View>
     );
   },
   (prev, next) =>
     prev.isVisible === next.isVisible &&
-    prev.route?.distance === next.route?.distance
+    prev.route?.distance === next.route?.distance &&
+    prev.graphRoute?.distance === next.graphRoute?.distance &&
+    prev.graphRoute?.nodeCount === next.graphRoute?.nodeCount,
 );
 
 const styles = StyleSheet.create({
@@ -67,7 +71,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: T.cardBorder,
     ...Shadows.lg,
     zIndex: 200,
   },
@@ -80,19 +84,16 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: T.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  icon: { fontSize: 20 },
   info: { flex: 1, gap: 2 },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
+    ...Typography.overline,
     color: T.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontWeight: '600',
   },
   value: {
     ...Typography.h4,
@@ -103,19 +104,14 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
     fontWeight: '400',
   },
-  direction: { fontSize: 11, color: T.textTertiary, marginTop: 2 },
+  direction: { ...Typography.caption, color: T.textTertiary, marginTop: 1 },
   clearBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: T.neutralMuted,
+    backgroundColor: T.surfaceBorder,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
-  },
-  clearBtnText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: T.textSecondary,
   },
 });

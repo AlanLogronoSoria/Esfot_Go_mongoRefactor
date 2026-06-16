@@ -1,20 +1,18 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  View,
-  Text,
-  TextInput as RNTextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  View, Text, TextInput as RNTextInput, Pressable,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useState, useCallback } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
 import { changePasswordSchema, getPasswordStrength } from '@/features/auth/domain/auth.schema';
 import type { ChangePasswordInput, PasswordStrength } from '@/features/auth/domain/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
 import { useMutation } from '@tanstack/react-query';
-import { LightTheme as T, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export function ChangePasswordForm() {
   const changePasswordAction = useAuthStore((s) => s.changePassword);
@@ -57,14 +55,20 @@ export function ChangePasswordForm() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      <Pressable
         style={styles.header}
-        onPress={() => setCollapsed(!collapsed)}
-        activeOpacity={0.7}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setCollapsed(!collapsed);
+        }}
       >
         <Text style={styles.headerText}>Cambiar contraseña</Text>
-        <Text style={styles.chevron}>{collapsed ? '›' : '⌄'}</Text>
-      </TouchableOpacity>
+        {collapsed ? (
+          <ChevronRight size={18} strokeWidth={2} color={T.textTertiary} />
+        ) : (
+          <ChevronDown size={18} strokeWidth={2} color={T.textTertiary} />
+        )}
+      </Pressable>
 
       {!collapsed && (
         <Animated.View entering={FadeIn.duration(300)} style={styles.form}>
@@ -169,18 +173,20 @@ export function ChangePasswordForm() {
             )}
           </View>
 
-          <TouchableOpacity
+          <Pressable
             style={[styles.button, mutation.isPending && styles.buttonDisabled]}
-            onPress={handleSubmit(onSubmit)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              handleSubmit(onSubmit)();
+            }}
             disabled={mutation.isPending}
-            activeOpacity={0.8}
           >
             {mutation.isPending ? (
-              <ActivityIndicator color={T.surface} />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.buttonText}>Actualizar contraseña</Text>
             )}
-          </TouchableOpacity>
+          </Pressable>
         </Animated.View>
       )}
     </View>
@@ -188,109 +194,44 @@ export function ChangePasswordForm() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 0,
-  },
+  container: { gap: 0 },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', paddingVertical: 4,
   },
-  headerText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: T.primary,
-  },
-  chevron: {
-    fontSize: 20,
-    color: T.textTertiary,
-    fontWeight: '600',
-  },
-  form: {
-    gap: 16,
-    marginTop: 12,
-  },
+  headerText: { ...Typography.body, fontWeight: '600', color: T.primary },
+  form: { gap: 16, marginTop: 12 },
   errorBanner: {
-    backgroundColor: T.errorBg,
-    borderRadius: Sizes.radiusSm,
-    padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: T.error,
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 10, borderLeftWidth: 3, borderLeftColor: T.error,
   },
-  errorText: {
-    color: T.error,
-    fontSize: 12,
-  },
+  errorText: { ...Typography.caption, color: T.error },
   successBanner: {
-    backgroundColor: T.successBg,
-    borderRadius: Sizes.radiusSm,
-    padding: 10,
-    borderLeftWidth: 3,
-    borderLeftColor: T.success,
+    backgroundColor: T.successBg, borderRadius: Sizes.radiusSm,
+    padding: 10, borderLeftWidth: 3, borderLeftColor: T.success,
   },
-  successText: {
-    color: T.success,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  field: {
-    gap: 4,
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: T.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
+  successText: { ...Typography.caption, color: T.success, fontWeight: '600' },
+  field: { gap: 4 },
+  label: { ...Typography.overline, color: T.textSecondary },
   input: {
-    backgroundColor: T.inputBg,
-    borderWidth: 1.5,
-    borderColor: T.cardBorder,
-    borderRadius: Sizes.radiusSm,
-    padding: 12,
-    fontSize: 14,
-    color: T.textPrimary,
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 12,
+    fontSize: 14, color: T.inputText,
   },
-  inputError: {
-    borderColor: T.error,
-  },
-  fieldError: {
-    color: T.error,
-    fontSize: 11,
-  },
-  strengthRow: {
-    gap: 6,
-  },
+  inputError: { borderColor: T.error },
+  fieldError: { ...Typography.caption, color: T.error },
+  strengthRow: { gap: 6 },
   strengthBarBg: {
-    height: 4,
-    backgroundColor: T.textMuted,
-    borderRadius: 2,
-    overflow: 'hidden',
+    height: 4, backgroundColor: T.surfaceBorder,
+    borderRadius: 2, overflow: 'hidden',
   },
-  strengthBarFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  strengthLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
+  strengthBarFill: { height: '100%', borderRadius: 2 },
+  strengthLabel: { ...Typography.caption, fontWeight: '700', textAlign: 'right' },
   button: {
-    backgroundColor: T.primary,
-    borderRadius: Sizes.radiusSm,
-    padding: 13,
-    alignItems: 'center',
-    marginTop: 4,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 14, alignItems: 'center', marginTop: 4,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: T.surface,
-    fontSize: 14,
-    fontWeight: '700',
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
 });

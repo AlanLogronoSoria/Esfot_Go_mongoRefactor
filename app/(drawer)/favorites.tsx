@@ -1,14 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  Platform,
+  View, Text, StyleSheet, ScrollView, Pressable,
 } from 'react-native';
 import Animated, {
-  FadeInDown,
-  useSharedValue,
-  useAnimatedScrollHandler,
+  FadeInDown, useSharedValue, useAnimatedScrollHandler,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
+import { BookOpen, Map, Star, CalendarDays } from 'lucide-react-native';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { BuildingCard, type Building } from '@/components/ui/BuildingCard';
@@ -17,11 +16,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 
 type FavTab = 'aulas' | 'edificios' | 'rutas' | 'ubicaciones';
 
-const TABS: { key: FavTab; label: string; icon: string }[] = [
-  { key: 'aulas', label: 'Aulas', icon: '📚' },
-  { key: 'edificios', label: 'Edificios', icon: '🏫' },
-  { key: 'rutas', label: 'Rutas', icon: '🗺️' },
-  { key: 'ubicaciones', label: 'Ubicaciones', icon: '📍' },
+const TABS: { key: FavTab; label: string; Icon: React.ComponentType<any> }[] = [
+  { key: 'aulas', label: 'Aulas', Icon: BookOpen },
+  { key: 'edificios', label: 'Edificios', Icon: Map },
+  { key: 'rutas', label: 'Rutas', Icon: Star },
+  { key: 'ubicaciones', label: 'Ubicaciones', Icon: CalendarDays },
 ];
 
 // ─── Mock data ───
@@ -155,9 +154,9 @@ export default function FavoritesScreen() {
       if (routes.length === 0) {
         return (
           <EmptyState
-            icon="🗺️"
+            icon={<Star size={36} strokeWidth={1.5} color={T.textTertiary} />}
             title="Sin rutas favoritas"
-            subtitle="Guarda rutas desde el Mapa para acceder rápidamente"
+            subtitle="Guarda rutas desde el Mapa para acceder rapidamente"
             actionLabel="Ir al Mapa"
             onAction={() => router.push('/map' as any)}
             delay={100}
@@ -188,16 +187,16 @@ export default function FavoritesScreen() {
         : favorites.ubicaciones;
 
     if (items.length === 0) {
-      const config: Record<FavTab, { icon: string; title: string; subtitle: string; action: string }> = {
-        aulas: { icon: '📚', title: 'Sin aulas favoritas', subtitle: 'Agrega aulas desde el Mapa', action: 'Ir al Mapa' },
-        edificios: { icon: '🏫', title: 'Sin edificios favoritos', subtitle: 'Explora el campus en el Mapa', action: 'Explorar' },
-        rutas: { icon: '🗺️', title: 'Sin rutas', subtitle: '', action: '' },
-        ubicaciones: { icon: '📍', title: 'Sin ubicaciones', subtitle: 'Guarda lugares frecuentes desde el Mapa', action: 'Ir al Mapa' },
+      const config: Record<FavTab, { Icon: React.ComponentType<any>; title: string; subtitle: string; action: string }> = {
+        aulas: { Icon: BookOpen, title: 'Sin aulas favoritas', subtitle: 'Agrega aulas desde el Mapa', action: 'Ir al Mapa' },
+        edificios: { Icon: Map, title: 'Sin edificios favoritos', subtitle: 'Explora el campus en el Mapa', action: 'Explorar' },
+        rutas: { Icon: Star, title: 'Sin rutas', subtitle: '', action: '' },
+        ubicaciones: { Icon: CalendarDays, title: 'Sin ubicaciones', subtitle: 'Guarda lugares frecuentes desde el Mapa', action: 'Ir al Mapa' },
       };
       const c = config[activeTab];
       return (
         <EmptyState
-          icon={c.icon}
+          icon={<c.Icon size={36} strokeWidth={1.5} color={T.textTertiary} />}
           title={c.title}
           subtitle={c.subtitle}
           actionLabel={c.action}
@@ -261,13 +260,15 @@ export default function FavoritesScreen() {
               const count = (favorites[tab.key] as any[]).length;
               const isActive = activeTab === tab.key;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={tab.key}
                   style={[styles.tab, isActive && styles.tabActive]}
-                  onPress={() => setActiveTab(tab.key)}
-                  activeOpacity={0.75}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setActiveTab(tab.key);
+                  }}
                 >
-                  <Text style={styles.tabIcon}>{tab.icon}</Text>
+                  <tab.Icon size={14} strokeWidth={2} color={isActive ? '#FFFFFF' : T.textSecondary} />
                   <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
                     {tab.label}
                   </Text>
@@ -278,7 +279,7 @@ export default function FavoritesScreen() {
                       </Text>
                     </View>
                   )}
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </ScrollView>
@@ -326,27 +327,18 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    paddingHorizontal: 14, paddingVertical: 9,
     borderRadius: Sizes.radiusFull,
-    backgroundColor: T.surface,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
+    backgroundColor: T.surfaceGlass,
+    borderWidth: 1, borderColor: T.cardBorder,
     ...Shadows.sm,
   },
   tabActive: {
-    backgroundColor: T.primary,
-    borderColor: T.primary,
+    backgroundColor: T.primary, borderColor: T.primary,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  tabIcon: { fontSize: 14 },
-  tabLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: T.textSecondary,
-  },
+  tabLabel: { ...Typography.caption, fontWeight: '600', color: T.textSecondary },
   tabLabelActive: { color: '#FFFFFF' },
   tabBadge: {
     backgroundColor: T.primaryMuted,

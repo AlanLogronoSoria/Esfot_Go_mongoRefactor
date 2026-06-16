@@ -1,19 +1,18 @@
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  View,
-  Text,
-  TextInput as RNTextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  View, Text, TextInput as RNTextInput, Pressable,
+  StyleSheet, ActivityIndicator,
 } from 'react-native';
 import { useState } from 'react';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { Mail } from 'lucide-react-native';
 import { recoverPasswordSchema } from '@/features/auth/domain/auth.schema';
 import type { RecoverPasswordInput } from '@/features/auth/domain/auth.schema';
 import { useAuthStore } from '@/store/auth.store';
 import { AppError } from '@/core/errors/app-error';
+import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 
 export function RecoverForm() {
   const recoverPassword = useAuthStore((s) => s.recoverPassword);
@@ -48,7 +47,7 @@ export function RecoverForm() {
     return (
       <Animated.View entering={ZoomIn.duration(400)} style={styles.sentContainer}>
         <View style={styles.sentIcon}>
-          <Text style={styles.sentIconText}>✉️</Text>
+          <Mail size={36} strokeWidth={1.5} color={T.primary} />
         </View>
         <Text style={styles.sentTitle}>Correo enviado</Text>
         <Text style={styles.sentDescription}>
@@ -99,113 +98,64 @@ export function RecoverForm() {
         )}
       </View>
 
-      <TouchableOpacity
+      <Pressable
         style={[styles.button, isLoading && styles.buttonDisabled]}
-        onPress={handleSubmit(onSubmit)}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          handleSubmit(onSubmit)();
+        }}
         disabled={isLoading}
-        activeOpacity={0.8}
       >
         {isLoading ? (
           <ActivityIndicator color="#FFFFFF" />
         ) : (
           <Text style={styles.buttonText}>Enviar enlace</Text>
         )}
-      </TouchableOpacity>
+      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-  },
+  container: { gap: 20 },
+  title: { ...Typography.h2, color: T.textPrimary },
   subtitle: {
-    fontSize: 14,
-    color: '#6B7280',
-    lineHeight: 20,
-    marginTop: -12,
+    ...Typography.body, color: T.textSecondary,
+    lineHeight: 20, marginTop: -12,
   },
   errorBanner: {
-    backgroundColor: '#FEE2E2',
-    borderRadius: 10,
-    padding: 14,
-    borderLeftWidth: 4,
-    borderLeftColor: '#EF4444',
+    backgroundColor: T.errorBg, borderRadius: Sizes.radiusSm,
+    padding: 14, borderLeftWidth: 4, borderLeftColor: T.error,
   },
-  errorBannerText: {
-    color: '#991B1B',
-    fontSize: 14,
-  },
-  field: {
-    gap: 6,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1F2937',
-  },
+  errorBannerText: { ...Typography.bodySm, color: T.error },
+  field: { gap: 6 },
+  label: { ...Typography.bodySm, fontWeight: '600', color: T.textPrimary },
   input: {
-    backgroundColor: '#F9FAFB',
-    borderWidth: 1.5,
-    borderColor: '#D1D5DB',
-    borderRadius: 12,
-    padding: 16,
-    fontSize: 16,
-    color: '#111827',
+    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
+    borderRadius: Sizes.radiusSm, padding: 16,
+    fontSize: 15, color: T.inputText,
   },
-  inputError: {
-    borderColor: '#EF4444',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 12,
-  },
+  inputError: { borderColor: T.error },
+  errorText: { ...Typography.caption, color: T.error },
   button: {
-    backgroundColor: '#00205B',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
+    padding: 16, alignItems: 'center', marginTop: 8,
+    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { ...Typography.button, color: '#FFFFFF', fontSize: 16 },
   sentContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 16,
+    alignItems: 'center', paddingVertical: 40, gap: 16,
   },
   sentIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#EFF6FF',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 80, height: 80, borderRadius: 24,
+    backgroundColor: T.primaryMuted,
+    justifyContent: 'center', alignItems: 'center',
+    ...Shadows.md,
   },
-  sentIconText: {
-    fontSize: 36,
-  },
-  sentTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#059669',
-  },
+  sentTitle: { ...Typography.h3, color: T.success },
   sentDescription: {
-    fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 20,
-    maxWidth: 320,
+    ...Typography.body, color: T.textSecondary,
+    textAlign: 'center', lineHeight: 20, maxWidth: 320,
   },
 });

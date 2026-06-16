@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import MapView, { PROVIDER_GOOGLE } from 'react-native-maps';
+import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
 import type { MapRegion } from '@/features/map/domain/coordinates';
 import type { BusRoute, BusStop } from '@/features/polibus/domain/route.entity';
 import {
@@ -14,7 +14,9 @@ import { MemoPolyline } from '@/features/polibus/presentation/memo-polyline';
 import { StopList } from '@/features/polibus/presentation/stop-list';
 import { RouteSelector } from '@/features/polibus/presentation/route-selector';
 import { useBatteryOptimizer } from '@/features/map/services/battery-optimizer';
-import { DarkTheme as T, Shadows } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
+
+const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 
 const EPN_REGION: MapRegion = {
   latitude: -0.2095,
@@ -51,15 +53,15 @@ export default function PolibusScreen() {
           latitudeDelta: 0.004,
           longitudeDelta: 0.004,
         },
-        500
+        500,
       );
     },
-    []
+    [],
   );
 
   const polylineCoords = useMemo(
     () => polyline?.simplifiedPoints ?? [],
-    [polyline]
+    [polyline],
   );
 
   return (
@@ -67,7 +69,7 @@ export default function PolibusScreen() {
       <MapView
         ref={mapRef}
         style={styles.map}
-        provider={PROVIDER_GOOGLE}
+        provider={MAP_PROVIDER}
         initialRegion={EPN_REGION}
         showsUserLocation
         showsMyLocationButton={false}
@@ -127,7 +129,7 @@ export default function PolibusScreen() {
               />
               {battery.isLowPower && (
                 <View style={styles.batteryTip}>
-                  <Text style={styles.batteryTipText}>⚡</Text>
+                  <Text style={styles.batteryTipText}>Ahorro</Text>
                 </View>
               )}
             </View>
@@ -155,21 +157,45 @@ function StatItem({ value, label }: { value: string | number; label: string }) {
 
 const statStyles = StyleSheet.create({
   item: { alignItems: 'center' as const },
-  value: { fontSize: 16, fontWeight: '800' as const, color: T.primary },
-  label: { fontSize: 10, color: T.textSecondary },
+  value: { ...Typography.h4, color: T.primary, fontSize: 18 },
+  label: { ...Typography.caption, color: T.textSecondary },
 });
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
   panel: {
-    backgroundColor: T.surface, borderTopLeftRadius: 22, borderTopRightRadius: 22,
-    padding: 18, paddingTop: 14, gap: 14, ...Shadows.lg,
-    maxHeight: 340,
+    backgroundColor: T.surfaceGlass,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: Sizes.paddingLg,
+    paddingTop: 14,
+    gap: 16,
+    borderWidth: 1,
+    borderColor: T.cardBorder,
+    borderBottomWidth: 0,
+    ...Shadows.xl,
+    maxHeight: 370,
   },
-  detailSection: { gap: 12, marginTop: 2 },
-  detailStats: { flexDirection: 'row', alignItems: 'center', gap: 18 },
-  detailDivider: { width: 1, height: 30, backgroundColor: T.divider },
-  batteryTip: { marginLeft: 'auto', backgroundColor: T.warningBg, borderRadius: 8, padding: 4 },
-  batteryTipText: { fontSize: 12 },
+  detailSection: { gap: 14, marginTop: 0 },
+  detailStats: {
+    flexDirection: 'row', alignItems: 'center', gap: 20,
+    backgroundColor: T.background,
+    borderRadius: Sizes.radiusMd,
+    padding: 14,
+  },
+  detailDivider: {
+    width: 1, height: 32, backgroundColor: T.divider,
+  },
+  batteryTip: {
+    marginLeft: 'auto',
+    backgroundColor: T.warningBg,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  batteryTipText: {
+    fontSize: 10, fontWeight: '700', color: T.warning,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+  },
 });

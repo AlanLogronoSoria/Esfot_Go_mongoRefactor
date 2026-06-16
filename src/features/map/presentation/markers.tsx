@@ -1,8 +1,10 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Marker, Callout } from 'react-native-maps';
+import { Bus as BusIcon } from 'lucide-react-native';
 import { getCategoryConfig } from '@/features/map/application/map.hooks';
 import type { MapMarkerData } from '@/features/map/domain/coordinates';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 interface LocationMarkerProps {
   marker: MapMarkerData;
@@ -11,12 +13,9 @@ interface LocationMarkerProps {
 }
 
 export const LocationMarker = memo(function LocationMarker({
-  marker,
-  onPress,
-  tracksViewChanges = false,
+  marker, onPress, tracksViewChanges = false,
 }: LocationMarkerProps) {
   const config = getCategoryConfig(marker.category);
-
   return (
     <Marker
       coordinate={marker.coordinate}
@@ -25,19 +24,17 @@ export const LocationMarker = memo(function LocationMarker({
       tracksViewChanges={tracksViewChanges}
       onPress={() => onPress?.(marker)}
     >
-      <View style={[styles.markerContainer, { backgroundColor: config.color }]}>
-        <Text style={styles.markerIcon}>{config.icon}</Text>
+      <View style={[s.marker, { backgroundColor: config.color }]}>
+        <Text style={s.markerLetter}>{config.label.charAt(0)}</Text>
       </View>
       <Callout tooltip>
-        <View style={styles.callout}>
-          <Text style={styles.calloutTitle}>{marker.title}</Text>
+        <View style={s.callout}>
+          <Text style={s.calloutTitle}>{marker.title}</Text>
           {marker.description && (
-            <Text style={styles.calloutDesc} numberOfLines={3}>
-              {marker.description}
-            </Text>
+            <Text style={s.calloutDesc} numberOfLines={3}>{marker.description}</Text>
           )}
-          <View style={styles.calloutBadge}>
-            <Text style={styles.calloutBadgeText}>{config.label}</Text>
+          <View style={[s.calloutBadge, { backgroundColor: config.color + '15' }]}>
+            <Text style={[s.calloutBadgeText, { color: config.color }]}>{config.label}</Text>
           </View>
         </View>
       </Callout>
@@ -54,34 +51,17 @@ interface ClusterMarkerProps {
 }
 
 export const ClusterMarker = memo(function ClusterMarker({
-  id,
-  coordinate,
-  count,
-  topCategory,
-  onPress,
+  id, coordinate, count, topCategory, onPress,
 }: ClusterMarkerProps) {
   const config = getCategoryConfig(topCategory);
-  const size = Math.min(60, 40 + count * 2);
-
+  const size = Math.min(56, 36 + count * 2);
   return (
-    <Marker
-      coordinate={coordinate}
-      identifier={id}
-      onPress={onPress}
-      tracksViewChanges={false}
-    >
-      <View
-        style={[
-          styles.clusterContainer,
-          {
-            width: size,
-            height: size,
-            borderRadius: size / 2,
-            backgroundColor: config.color,
-          },
-        ]}
-      >
-        <Text style={styles.clusterCount}>{count > 99 ? '99+' : count}</Text>
+    <Marker coordinate={coordinate} identifier={id} onPress={onPress} tracksViewChanges={false}>
+      <View style={[s.cluster, {
+        width: size, height: size, borderRadius: size / 2,
+        backgroundColor: config.color,
+      }]}>
+        <Text style={s.clusterCount}>{count > 99 ? '99+' : count}</Text>
       </View>
     </Marker>
   );
@@ -95,10 +75,7 @@ interface BusMarkerProps {
 }
 
 export const BusMarker = memo(function BusMarker({
-  coordinate,
-  busId,
-  heading,
-  routeColor,
+  coordinate, busId, heading, routeColor,
 }: BusMarkerProps) {
   return (
     <Marker
@@ -109,8 +86,8 @@ export const BusMarker = memo(function BusMarker({
       tracksViewChanges={false}
       flat
     >
-      <View style={[styles.busMarker, { backgroundColor: routeColor }]}>
-        <Text style={styles.busIcon}>🚌</Text>
+      <View style={[s.bus, { backgroundColor: routeColor }]}>
+        <BusIcon size={16} strokeWidth={2.2} color="#FFFFFF" />
       </View>
     </Marker>
   );
@@ -125,151 +102,82 @@ interface StopMarkerProps {
 }
 
 export const StopMarker = memo(function StopMarker({
-  coordinate,
-  name,
-  index,
-  total,
-  stopNumber,
+  coordinate, name, index, total, stopNumber,
 }: StopMarkerProps) {
   const isFirst = index === 0;
   const isLast = index === total - 1;
-
+  const prefix = isFirst ? 'Inicio: ' : isLast ? 'Fin: ' : '';
   return (
     <Marker
       coordinate={coordinate}
-      title={isFirst ? `🏁 Inicio: ${name}` : isLast ? `🏁 Fin: ${name}` : name}
+      title={`${prefix}${name}`}
       description={`Parada ${stopNumber} de ${total}`}
       tracksViewChanges={false}
     >
-      <View
-        style={[
-          styles.stopDot,
-          isFirst && styles.stopFirst,
-          isLast && styles.stopLast,
-        ]}
-      >
-        <Text
-          style={[
-            styles.stopNumber,
-            (isFirst || isLast) && styles.stopNumberEndpoint,
-          ]}
-        >
-          {stopNumber}
-        </Text>
+      <View style={[s.stop, isFirst && s.stopFirst, isLast && s.stopLast]}>
+        <Text style={[s.stopNum, (isFirst || isLast) && s.stopNumEnd]}>{stopNumber}</Text>
       </View>
     </Marker>
   );
 });
 
-const styles = StyleSheet.create({
-  markerContainer: {
-    padding: 6,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+const s = StyleSheet.create({
+  marker: {
+    paddingHorizontal: 10, paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 2.5, borderColor: '#FFFFFF',
+    ...Shadows.md,
   },
-  markerIcon: {
-    fontSize: 18,
+  markerLetter: {
+    fontSize: 13, fontWeight: '800', color: '#FFFFFF',
+    textTransform: 'uppercase',
   },
   callout: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 14,
-    width: 220,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: T.surface,
+    borderRadius: 18,
+    padding: 16,
+    width: 240,
+    gap: 8,
+    borderWidth: 1,
+    borderColor: T.cardBorder,
+    ...Shadows.xl,
   },
-  calloutTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  calloutDesc: {
-    fontSize: 13,
-    color: '#6B7280',
-    lineHeight: 18,
-  },
+  calloutTitle: { ...Typography.h4, color: T.textPrimary },
+  calloutDesc: { ...Typography.bodySm, color: T.textSecondary, lineHeight: 18 },
   calloutBadge: {
-    marginTop: 4,
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    alignSelf: 'flex-start',
+    marginTop: 4, paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 8, alignSelf: 'flex-start',
   },
-  calloutBadgeText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  clusterContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
+  calloutBadgeText: { fontSize: 11, fontWeight: '700' },
+  cluster: {
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: '#FFFFFF',
+    ...Shadows.lg,
   },
   clusterCount: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
+    color: '#FFFFFF', fontSize: 14, fontWeight: '800',
   },
-  busMarker: {
-    padding: 5,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+  bus: {
+    width: 36, height: 36, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
+    ...Shadows.md,
   },
-  busIcon: {
-    fontSize: 20,
+  stop: {
+    width: 26, height: 26, borderRadius: 13,
+    backgroundColor: T.textSecondary,
+    borderWidth: 2.5, borderColor: '#FFFFFF',
+    justifyContent: 'center', alignItems: 'center',
+    ...Shadows.sm,
   },
-  stopDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#6B7280',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  stopNumber: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  stopNumberEndpoint: {
-    fontSize: 11,
-  },
+  stopNum: { fontSize: 10, fontWeight: '800', color: '#FFFFFF' },
+  stopNumEnd: { fontSize: 11 },
   stopFirst: {
-    backgroundColor: '#059669',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    backgroundColor: T.success,
+    width: 30, height: 30, borderRadius: 15,
   },
   stopLast: {
-    backgroundColor: '#DC2626',
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    backgroundColor: T.error,
+    width: 30, height: 30, borderRadius: 15,
   },
 });

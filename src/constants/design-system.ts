@@ -1,3 +1,8 @@
+// ═══════════════════════════════════════════════════════
+// ESFOT Go — Design System
+// ═══════════════════════════════════════════════════════
+// Institutional brand: EPN Blue #042c5c · Gold #fabb54 · Red #eb2f26
+
 export const DarkTheme = {
   primary: '#0033A0',
   primaryLight: '#1A5BCF',
@@ -44,90 +49,12 @@ export const DarkTheme = {
 
   cardBorder: 'rgba(255,255,255,0.06)',
   divider: 'rgba(255,255,255,0.05)',
+
+  skeleton: '#1C1C1E',
+  skeletonShimmer: '#2C2C2E',
+  overlay: 'rgba(0,0,0,0.45)',
+  pressed: 'rgba(255,255,255,0.06)',
 } as const;
-
-export const Shadows = {
-  sm: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  glow: {
-    shadowColor: '#0033A0',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-} as const;
-
-export const Sizes = {
-  radiusSm: 10,
-  radiusMd: 14,
-  radiusLg: 18,
-  radiusXl: 24,
-  radiusFull: 999,
-
-  paddingXs: 6,
-  paddingSm: 10,
-  paddingMd: 16,
-  paddingLg: 20,
-  paddingXl: 24,
-
-  gapXs: 4,
-  gapSm: 8,
-  gapMd: 14,
-  gapLg: 20,
-  gapXl: 28,
-
-  iconSm: 18,
-  iconMd: 24,
-  iconLg: 32,
-
-  btnHeight: 54,
-  inputHeight: 54,
-
-  headerH: 220,
-  tabH: 60,
-} as const;
-
-export const Typography = {
-  h1: { fontSize: 32, fontWeight: '800' as const, lineHeight: 40, letterSpacing: -0.5 },
-  h2: { fontSize: 24, fontWeight: '700' as const, lineHeight: 30, letterSpacing: -0.3 },
-  h3: { fontSize: 20, fontWeight: '700' as const, lineHeight: 26 },
-  h4: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
-  body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
-  bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
-  caption: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16 },
-  label: { fontSize: 11, fontWeight: '600' as const, lineHeight: 14, letterSpacing: 0.5, textTransform: 'uppercase' as const },
-  button: { fontSize: 16, fontWeight: '700' as const, letterSpacing: 0.3 },
-} as const;
-
-export const Glass = {
-  bg: 'rgba(28,28,30,0.75)',
-  border: 'rgba(255,255,255,0.06)',
-  backdrop: 'rgba(13,13,15,0.5)',
-} as const;
-
-export const EPN_GOLD = '#FFB81C';
-export const EPN_BLUE = '#0033A0';
-export const EPN_WHITE = '#F5F5F7';
 
 // ─── Institutional Light Theme ───
 
@@ -185,4 +112,181 @@ export const LightTheme = {
 
   cardBorder: 'rgba(0,0,0,0.06)',
   divider: 'rgba(0,0,0,0.05)',
+
+  skeleton: '#E2E8F0',
+  skeletonShimmer: '#F1F5F9',
+  overlay: 'rgba(0,0,0,0.30)',
+  pressed: 'rgba(0,0,0,0.04)',
 } as const;
+
+// ═══════════════════════════════════════════════════════
+// Shadows
+// ═══════════════════════════════════════════════════════
+
+export const Shadows = {
+  xs: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  lg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  xl: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 32,
+    elevation: 16,
+  },
+  glow: {
+    shadowColor: '#042c5c',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Sizes & Spacing
+// ═══════════════════════════════════════════════════════
+
+export const Sizes = {
+  radiusXs: 8,
+  radiusSm: 12,
+  radiusMd: 16,
+  radiusLg: 20,
+  radiusXl: 28,
+  radiusFull: 999,
+
+  paddingXs: 6,
+  paddingSm: 10,
+  paddingMd: 16,
+  paddingLg: 20,
+  paddingXl: 24,
+
+  gapXs: 4,
+  gapSm: 8,
+  gapMd: 14,
+  gapLg: 20,
+  gapXl: 28,
+
+  iconXs: 14,
+  iconSm: 18,
+  iconMd: 24,
+  iconLg: 32,
+  iconXl: 40,
+
+  btnHeight: 54,
+  inputHeight: 54,
+
+  headerH: 220,
+  tabH: 60,
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Typography
+// ═══════════════════════════════════════════════════════
+
+export const Typography = {
+  display: { fontSize: 36, fontWeight: '800' as const, lineHeight: 44, letterSpacing: -1 },
+  h1: { fontSize: 32, fontWeight: '800' as const, lineHeight: 40, letterSpacing: -0.5 },
+  h2: { fontSize: 24, fontWeight: '700' as const, lineHeight: 30, letterSpacing: -0.3 },
+  h3: { fontSize: 20, fontWeight: '700' as const, lineHeight: 26 },
+  h4: { fontSize: 17, fontWeight: '600' as const, lineHeight: 22 },
+  body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
+  bodySm: { fontSize: 13, fontWeight: '400' as const, lineHeight: 18 },
+  caption: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16 },
+  label: { fontSize: 11, fontWeight: '600' as const, lineHeight: 14, letterSpacing: 0.5, textTransform: 'uppercase' as const },
+  overline: { fontSize: 10, fontWeight: '700' as const, lineHeight: 12, letterSpacing: 1.5, textTransform: 'uppercase' as const },
+  button: { fontSize: 16, fontWeight: '700' as const, letterSpacing: 0.3 },
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Glass & Blur
+// ═══════════════════════════════════════════════════════
+
+export const Glass = {
+  bg: 'rgba(28,28,30,0.75)',
+  border: 'rgba(255,255,255,0.06)',
+  backdrop: 'rgba(13,13,15,0.5)',
+  lightBg: 'rgba(255,255,255,0.80)',
+  lightBorder: 'rgba(0,0,0,0.06)',
+} as const;
+
+export const Blur = {
+  none: 0,
+  sm: 4,
+  md: 8,
+  lg: 16,
+  xl: 24,
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Motion
+// ═══════════════════════════════════════════════════════
+
+export const Motion = {
+  durationFast: 150,
+  duration: 250,
+  durationSlow: 400,
+  durationXl: 600,
+  spring: { damping: 20, stiffness: 200 },
+  springGentle: { damping: 25, stiffness: 150 },
+  springBouncy: { damping: 12, stiffness: 180 },
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Opacity Tokens
+// ═══════════════════════════════════════════════════════
+
+export const Opacity = {
+  disabled: 0.4,
+  pressed: 0.6,
+  hover: 0.8,
+  inactive: 0.5,
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Z-Index Scale
+// ═══════════════════════════════════════════════════════
+
+export const ZIndex = {
+  base: 1,
+  dropdown: 50,
+  sticky: 75,
+  fab: 100,
+  overlay: 200,
+  modal: 300,
+  toast: 400,
+  tooltip: 500,
+} as const;
+
+// ═══════════════════════════════════════════════════════
+// Brand Constants
+// ═══════════════════════════════════════════════════════
+
+export const EPN_GOLD = '#FFB81C';
+export const EPN_BLUE = '#0033A0';
+export const EPN_WHITE = '#F5F5F7';
