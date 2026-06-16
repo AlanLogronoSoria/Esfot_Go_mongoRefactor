@@ -16,6 +16,8 @@ import type { ChatMessage } from '../domain/chat.entity';
 import { useAuthStore } from '@/store/auth.store';
 import { LightTheme as T, Typography, Sizes, Shadows } from '@/constants/design-system';
 import { Send, MessageCircle } from 'lucide-react-native';
+import { PrivateChatList } from './private-chat-list';
+import { PrivateChatRoom } from './private-chat-room';
 
 export function ChatScreen() {
   const user = useAuthStore((s) => s.user);
@@ -27,6 +29,9 @@ export function ChatScreen() {
 
   const notifOpacity = useSharedValue(0);
   const pulseOpacity = useSharedValue(1);
+
+  const [activeTab, setActiveTab] = useState<'global' | 'private'>('global');
+  const [privateRoom, setPrivateRoom] = useState<{ conversationId: string; userName: string } | null>(null);
 
   const pulseAnimStyle = useAnimatedStyle(() => ({
     opacity: pulseOpacity.value,
@@ -124,14 +129,35 @@ export function ChatScreen() {
         </View>
       </View>
 
-      {notification && (
-        <Animated.View style={[styles.notifBanner, notifAnimStyle]}>
-          <Text style={styles.notifText}>{notification}</Text>
-        </Animated.View>
-      )}
+      <View style={styles.tabBar}>
+        <Pressable
+          style={[styles.tab, activeTab === 'global' && styles.tabActive]}
+          onPress={() => setActiveTab('global')}
+        >
+          <Text style={[styles.tabText, activeTab === 'global' && styles.tabTextActive]}>
+            Canal General
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.tab, activeTab === 'private' && styles.tabActive]}
+          onPress={() => setActiveTab('private')}
+        >
+          <Text style={[styles.tabText, activeTab === 'private' && styles.tabTextActive]}>
+            Mensajes Privados
+          </Text>
+        </Pressable>
+      </View>
 
-      <FlatList
-        ref={flatListRef}
+      {activeTab === 'global' && (
+        <>
+          {notification && (
+            <Animated.View style={[styles.notifBanner, notifAnimStyle]}>
+              <Text style={styles.notifText}>{notification}</Text>
+            </Animated.View>
+          )}
+
+          <FlatList
+            ref={flatListRef}
         data={messages}
         keyExtractor={(_, i) => String(i)}
         renderItem={renderMessage}
@@ -176,6 +202,23 @@ export function ChatScreen() {
           <Send size={18} color={inputText.trim() ? '#FFFFFF' : T.textSecondary} />
         </TouchableOpacity>
       </View>
+        </>
+      )}
+
+      {activeTab === 'private' && !privateRoom && (
+        <PrivateChatList
+          onSelectUser={(conversationId, userName) => {
+            setPrivateRoom({ conversationId, userName });
+          }}
+        />
+      )}
+
+      {activeTab === 'private' && privateRoom && (
+        <PrivateChatRoom
+          conversationId={privateRoom.conversationId}
+          userName={privateRoom.userName}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -264,4 +307,24 @@ const styles = StyleSheet.create({
     ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.35,
   },
   sendBtnOff: { backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.cardBorder },
+
+  tabBar: {
+    flexDirection: 'row',
+    paddingHorizontal: Sizes.paddingMd,
+    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: T.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: T.divider,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: Sizes.radiusSm,
+    backgroundColor: T.inputBg,
+    alignItems: 'center',
+  },
+  tabActive: { backgroundColor: T.primary },
+  tabText: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
+  tabTextActive: { color: '#FFFFFF' },
 });
