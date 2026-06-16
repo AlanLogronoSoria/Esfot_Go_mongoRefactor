@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import {
   View, Text, StyleSheet, Pressable, ActivityIndicator,
 } from 'react-native';
-import { Link, useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import Animated, {
   useAnimatedScrollHandler, useSharedValue, FadeInDown,
   useAnimatedStyle, withSpring,
@@ -15,6 +15,7 @@ import { UserEntity } from '@/features/auth/domain/user.entity';
 import { useInfiniteEvents } from '@/features/events/application/event.hooks';
 import { useBusRoutes } from '@/features/polibus/application/bus.hooks';
 import { useLocation } from '@/hooks/useLocation';
+import { useLocationPermission } from '@/hooks/use-location-permission';
 import { GpsPermissionPrompt } from '@/features/auth/presentation/gps-permission-prompt';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { Map, Bus, Calendar, User, MapPin, CalendarDays, Building2 } from 'lucide-react-native';
@@ -67,7 +68,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
-  const { showGpsPrompt } = useLocalSearchParams<{ showGpsPrompt?: string }>();
+  const { status: gpsStatus } = useLocationPermission();
   const ue = user ? new UserEntity(user) : null;
   const { data: events, isLoading: eventsLoading, error: eventsError } = useInfiniteEvents();
   const { data: routes, error: routesError } = useBusRoutes();
@@ -225,7 +226,9 @@ export default function HomeScreen() {
           </Animated.View>
         )}
 
-        {showGpsPrompt === '1' && user && <GpsPermissionPrompt />}
+        {gpsStatus === 'idle' && user && (
+          <GpsPermissionPrompt variant="inline" />
+        )}
       </Animated.ScrollView>
 
       <Animated.View style={[styles.fabWrap, { bottom: insets.bottom + 96 }, fabAnimStyle]}>

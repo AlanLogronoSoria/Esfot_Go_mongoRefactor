@@ -1,6 +1,6 @@
 import React, { useCallback, useRef, useState, useMemo } from 'react';
 import {
-  View, StyleSheet, Pressable, Platform,
+  View, StyleSheet, Pressable, Platform, Text, ActivityIndicator,
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Polyline } from 'react-native-maps';
 import Animated, {
@@ -14,6 +14,7 @@ import type { MapRegion, MapMarkerData, ClusterPoint, GeoCoordinate } from '@/fe
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { useMapClusters } from '@/features/map/application/map.hooks';
 import { useLocation } from '@/hooks/useLocation';
+import { GpsPermissionPrompt } from '@/features/auth/presentation/gps-permission-prompt';
 import { UserMarker } from '@/features/map/presentation/user-marker';
 import { LocationMarker, ClusterMarker } from '@/features/map/presentation/markers';
 import { MapControls } from '@/features/map/presentation/map-controls';
@@ -29,7 +30,7 @@ import { useCampusGraph, useOptimalRoute } from '@/features/graph/application/gr
 import { findNearestNode, graphRouteToWaypoints } from '@/features/graph/application/graph-route.service';
 import type { RouteCalculation } from '@/features/map/services/route-calculator';
 import type { GraphRouteResult } from '@/features/graph/application/graph-route.service';
-import { LightTheme as T, Shadows, Sizes } from '@/constants/design-system';
+import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 import { MapPin } from 'lucide-react-native';
 
 const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
@@ -48,7 +49,7 @@ function isClusterPoint(item: MapMarkerData | ClusterPoint): item is ClusterPoin
 export default function MapScreen() {
   const mapRef = useRef<MapView>(null);
   const insets = useSafeAreaInsets();
-  const { location: userLocation } = useLocation();
+  const { location: userLocation, permissionStatus, retry, error: locationError } = useLocation();
   const battery = useBatteryOptimizer();
 
   const [region, setRegion] = useState<MapRegion>(EPN_REGION);
@@ -150,6 +151,21 @@ export default function MapScreen() {
     ...prev, latitudeDelta: prev.latitudeDelta * 1.6, longitudeDelta: prev.longitudeDelta * 1.6,
   })), []);
   const skipAnimation = useMemo(() => battery.shouldSkipAnimation(), [battery]);
+
+  if (permissionStatus !== 'granted' && permissionStatus !== 'idle') {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permissionFallback}>
+          <GpsPermissionPrompt
+            variant="inline"
+            onGranted={() => {
+              retry();
+            }}
+          />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -280,6 +296,14 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
+
+  permissionFallback: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: T.background,
+    padding: 24,
+  },
 
   floatingTop: {
     position: 'absolute',

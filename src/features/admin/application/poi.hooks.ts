@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import Toast from 'react-native-toast-message';
 import { ExpressPoiRepository } from '../infrastructure/express-poi.repository';
-import { poiEventBus } from './poi-events';
 import { useAuthStore } from '@/store/auth.store';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import type { PoiInput, PoiUpdateInput, RestrictedZone } from '../domain/poi.entity';
@@ -10,7 +10,7 @@ const repository = new ExpressPoiRepository();
 
 export function useAdminPois() {
   const queryClient = useQueryClient();
-  const userId = useAuthStore((s) => s.user?.id ?? 'dev');
+  const userId = useAuthStore((s) => s.user?.id ?? '');
 
   const query = useQuery<CampusLocation[]>({
     queryKey: ['admin', 'pois'],
@@ -22,32 +22,36 @@ export function useAdminPois() {
   useEffect(() => {
     const unsubscribe = repository.subscribeToChanges(() => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] });
-    });
-
-    const unsubEventBus = poiEventBus.subscribe(() => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] });
+      queryClient.invalidateQueries({ queryKey: ['campus-locations'] });
     });
 
     return () => {
       unsubscribe();
-      unsubEventBus();
     };
   }, [queryClient]);
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] });
+    queryClient.invalidateQueries({ queryKey: ['campus-locations'] });
+  };
+
   const createPoi = useMutation({
     mutationFn: (input: PoiInput) => repository.create(input, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] }),
+    onSuccess: invalidateAll,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo crear la ubicación' }),
   });
 
   const updatePoi = useMutation({
     mutationFn: ({ id, input }: { id: string; input: PoiUpdateInput }) =>
       repository.update(id, input, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] }),
+    onSuccess: invalidateAll,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo actualizar la ubicación' }),
   });
 
   const deletePoi = useMutation({
     mutationFn: (id: string) => repository.delete(id, userId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'pois'] }),
+    onSuccess: invalidateAll,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo eliminar la ubicación' }),
   });
 
   return {
@@ -76,19 +80,26 @@ export function useAdminZones() {
     return () => clearInterval(interval);
   }, [queryClient]);
 
+  const invalidateZones = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'zones'] });
+  };
+
   const createZone = useMutation({
     mutationFn: (input: Omit<RestrictedZone, 'id' | 'createdAt' | 'updatedAt'>) => repository.createZone(input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: invalidateZones,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo crear la zona' }),
   });
 
   const updateZone = useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<RestrictedZone> }) => repository.updateZone(id, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: invalidateZones,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo actualizar la zona' }),
   });
 
   const deleteZone = useMutation({
     mutationFn: (id: string) => repository.deleteZone(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'zones'] }),
+    onSuccess: invalidateZones,
+    onError: () => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo eliminar la zona' }),
   });
 
   return {

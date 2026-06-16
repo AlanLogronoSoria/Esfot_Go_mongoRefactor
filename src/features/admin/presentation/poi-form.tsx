@@ -44,6 +44,8 @@ export function PoiForm({
         name: name.trim(),
         description: description.trim() || undefined,
         category,
+        latitude: lat || editingPoi.latitude,
+        longitude: lng || editingPoi.longitude,
       });
     } else {
       onSubmit({

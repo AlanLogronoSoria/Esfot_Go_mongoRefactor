@@ -1,23 +1,23 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Platform,
+  View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform,
 } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import Toast from 'react-native-toast-message';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker, Polygon } from 'react-native-maps';
-import type { MapRegion } from '@/features/map/domain/coordinates';
+import type { MapRegion, MapMarkerData } from '@/features/map/domain/coordinates';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { LocationMarker } from '@/features/map/presentation/markers';
 import { PoiForm } from '@/features/admin/presentation/poi-form';
+import { ZonePanel } from '@/features/admin/presentation/zone-panel';
 import { useAdminPois, useAdminZones } from '@/features/admin/application/poi.hooks';
-import { poiEventBus } from '@/features/admin/application/poi-events';
 import { BusRoutesAdmin } from '@/features/polibus/presentation/bus-routes-admin';
 import { GraphAdmin } from '@/features/graph/presentation/graph-admin';
-import type { PoiInput, PoiUpdateInput, RestrictedZone } from '@/features/admin/domain/poi.entity';
+import type { PoiInput, PoiUpdateInput } from '@/features/admin/domain/poi.entity';
 import { useAuthStore } from '@/store/auth.store';
 import { RoleGuard } from '@/core/guards/role.guard';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
-import { Lock, Map, Bus, Edit2, Trash2, RefreshCw, AlertTriangle, Network } from 'lucide-react-native';
+import { Lock, Map, Bus, Edit2, Trash2, AlertTriangle, Network } from 'lucide-react-native';
 
 type AdminTab = 'mapa' | 'rutas' | 'zonas' | 'grafos';
 
@@ -57,11 +57,15 @@ export default function AdminMapScreen() {
     }, [editMode]);
 
   const handleCreate = useCallback((input: PoiInput) => {
-    createPoi.mutateAsync(input).then(() => { setPanelVisible(false); setNewCoordinate(null); });
+    createPoi.mutateAsync(input)
+      .then(() => { setPanelVisible(false); setNewCoordinate(null); })
+      .catch(() => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo crear la ubicación' }));
   }, [createPoi]);
 
   const handleUpdate = useCallback((id: string, input: PoiUpdateInput) => {
-    updatePoi.mutateAsync({ id, input }).then(() => { setPanelVisible(false); setSelectedPoi(null); });
+    updatePoi.mutateAsync({ id, input })
+      .then(() => { setPanelVisible(false); setSelectedPoi(null); })
+      .catch(() => Toast.show({ type: 'error', text1: 'Error', text2: 'No se pudo actualizar la ubicación' }));
   }, [updatePoi]);
 
   const handleDelete = useCallback((poi: CampusLocation) => {
@@ -70,6 +74,20 @@ export default function AdminMapScreen() {
       { text: 'Eliminar', style: 'destructive', onPress: () => { deletePoi.mutateAsync(poi.id); setPanelVisible(false); setSelectedPoi(null); } },
     ]);
   }, [deletePoi]);
+
+  const markersData = useMemo<MapMarkerData[]>(() => pois.map((poi) => ({
+    id: poi.id,
+    coordinate: { latitude: poi.latitude, longitude: poi.longitude },
+    title: poi.name,
+    description: poi.description ?? undefined,
+    category: poi.category,
+    clusterWeight: 1,
+  })), [pois]);
+
+  const onMarkerPress = useCallback((marker: MapMarkerData) => {
+    const poi = pois.find((p) => p.id === marker.id);
+    if (poi) handleMarkerPress(poi);
+  }, [pois, handleMarkerPress]);
 
   return (
     <RoleGuard allowedRoles={['administrador', 'gestor']} fallback={
@@ -116,18 +134,11 @@ export default function AdminMapScreen() {
         showsUserLocation
         toolbarEnabled={false}
       >
-        {pois.map((poi) => (
+        {markersData.map((marker) => (
           <LocationMarker
-            key={poi.id}
-            marker={{
-              id: poi.id,
-              coordinate: { latitude: poi.latitude, longitude: poi.longitude },
-              title: poi.name,
-              description: poi.description ?? undefined,
-              category: poi.category,
-              clusterWeight: 1,
-            }}
-            onPress={() => handleMarkerPress(poi)}
+            key={marker.id}
+            marker={marker}
+            onPress={onMarkerPress}
           />
         ))}
 
@@ -181,11 +192,9 @@ export default function AdminMapScreen() {
         />
       )}
 
-      {/* POI list */}
       <View style={styles.panel}>
         <View style={styles.panelHeader}>
           <Text style={styles.panelTitle}>Ubicaciones ({pois.length})</Text>
-          <PoiEventCounter />
         </View>
 
         <FlashList
@@ -224,7 +233,6 @@ export default function AdminMapScreen() {
         />
       </View>
 
-      {/* Edit/Add form */}
       {panelVisible && (
         <View style={styles.formOverlay}>
           <View style={styles.formCard}>
@@ -258,116 +266,6 @@ export default function AdminMapScreen() {
     </RoleGuard>
   );
 }
-
-function PoiEventCounter() {
-  const [count, setCount] = useState(0);
-  React.useEffect(() => {
-    const unsub = poiEventBus.subscribe(() => setCount((c) => c + 1));
-    return unsub;
-  }, []);
-  if (count === 0) return null;
-  return (
-    <View style={ecStyles.badge}>
-      <RefreshCw size={12} color={T.info} style={{ marginRight: 4 }} />
-      <Text style={ecStyles.text}>{count}</Text>
-    </View>
-  );
-}
-
-function ZonePanel({ zones, zLoading, createZone, updateZone, deleteZone }: {
-  zones: RestrictedZone[];
-  zLoading: boolean;
-  createZone: ReturnType<typeof useAdminZones>['createZone'];
-  updateZone: ReturnType<typeof useAdminZones>['updateZone'];
-  deleteZone: ReturnType<typeof useAdminZones>['deleteZone'];
-}) {
-  const [showForm, setShowForm] = useState(false);
-  const [editTarget, setEditTarget] = useState<RestrictedZone | null>(null);
-  const [zName, setZName] = useState('');
-  const [zDesc, setZDesc] = useState('');
-  const [zCoords, setZCoords] = useState('');
-  const [zFill, setZFill] = useState('rgba(200,16,46,0.2)');
-  const [zStroke, setZStroke] = useState('#C8102E');
-
-  const resetForm = () => { setShowForm(false); setEditTarget(null); setZName(''); setZDesc(''); setZCoords(''); setZFill('rgba(200,16,46,0.2)'); setZStroke('#C8102E'); };
-
-  const handleSubmit = () => {
-    if (!zName.trim() || !zCoords.trim()) return;
-    let coords: { latitude: number; longitude: number }[];
-    try { coords = JSON.parse(zCoords); } catch { Toast.show({ type: 'error', text1: 'Error', text2: 'Coordenadas inválidas' }); return; }
-    if (editTarget) {
-      updateZone.mutateAsync({ id: editTarget.id, input: { name: zName.trim(), description: zDesc || undefined, coordinates: coords, fillColor: zFill, strokeColor: zStroke } }).then(resetForm);
-    } else {
-      createZone.mutateAsync({ name: zName.trim(), description: zDesc || undefined, coordinates: coords, fillColor: zFill, strokeColor: zStroke, isActive: true }).then(resetForm);
-    }
-  };
-
-  const startEdit = (z: RestrictedZone) => {
-    setEditTarget(z); setShowForm(true);
-    setZName(z.name); setZDesc(z.description ?? ''); setZCoords(JSON.stringify(z.coordinates));
-    setZFill(z.fillColor); setZStroke(z.strokeColor);
-  };
-
-  return (
-    <View style={zoneStyles.container}>
-      <View style={zoneStyles.header}>
-        <Text style={zoneStyles.title}>Zonas Restringidas ({zones.length})</Text>
-        <TouchableOpacity style={zoneStyles.addBtn} onPress={() => { resetForm(); setShowForm(true); }}>
-          <Text style={zoneStyles.addBtnText}>+ Zona</Text>
-        </TouchableOpacity>
-      </View>
-
-      {zLoading && <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 20 }} />}
-
-      {zones.map((zone) => (
-        <View key={zone.id} style={[zoneStyles.card, !zone.isActive && { opacity: 0.5 }]}>
-          <View style={zoneStyles.cardHeader}>
-            <View style={[zoneStyles.colorDot, { backgroundColor: zone.fillColor }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={zoneStyles.cardName}>{zone.name}</Text>
-              {zone.description && <Text style={zoneStyles.cardDesc}>{zone.description}</Text>}
-              <Text style={zoneStyles.cardMeta}>{zone.coordinates.length} puntos</Text>
-            </View>
-            <TouchableOpacity onPress={() => startEdit(zone)}><Edit2 size={18} color={T.textSecondary} /></TouchableOpacity>
-            <TouchableOpacity onPress={() => Alert.alert('Eliminar zona', `¿Eliminar "${zone.name}"?`, [{ text: 'Cancelar', style: 'cancel' }, { text: 'Eliminar', style: 'destructive', onPress: () => deleteZone.mutate(zone.id) }])}>
-              <Trash2 size={18} color={T.error} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      ))}
-
-      {zones.length === 0 && !zLoading && <Text style={zoneStyles.empty}>No hay zonas configuradas</Text>}
-
-      {showForm && (
-        <View style={zoneStyles.formCard}>
-          <Text style={zoneStyles.formTitle}>{editTarget ? 'Editar zona' : 'Nueva zona'}</Text>
-          <TextInput style={zoneStyles.input} placeholder="Nombre" placeholderTextColor={T.inputPlaceholder} value={zName} onChangeText={setZName} />
-          <TextInput style={zoneStyles.input} placeholder="Descripción" placeholderTextColor={T.inputPlaceholder} value={zDesc} onChangeText={setZDesc} />
-          <TextInput style={[zoneStyles.input, zoneStyles.textarea]} placeholder='Coordenadas JSON: [{"latitude":-0.21,"longitude":-78.49}]' placeholderTextColor={T.inputPlaceholder} value={zCoords} onChangeText={setZCoords} multiline numberOfLines={3} textAlignVertical="top" />
-          <View style={zoneStyles.row}>
-            <TextInput style={[zoneStyles.input, zoneStyles.half]} placeholder="Fill color" placeholderTextColor={T.inputPlaceholder} value={zFill} onChangeText={setZFill} />
-            <TextInput style={[zoneStyles.input, zoneStyles.half]} placeholder="Stroke color" placeholderTextColor={T.inputPlaceholder} value={zStroke} onChangeText={setZStroke} />
-          </View>
-          <View style={zoneStyles.formActions}>
-            <TouchableOpacity style={zoneStyles.saveBtn} onPress={handleSubmit} disabled={createZone.isPending || updateZone.isPending}>
-              {createZone.isPending || updateZone.isPending ? <ActivityIndicator color={T.text} size="small" /> : <Text style={zoneStyles.saveBtnText}>{editTarget ? 'Actualizar' : 'Crear'}</Text>}
-            </TouchableOpacity>
-            <TouchableOpacity style={zoneStyles.cancelBtn} onPress={resetForm}><Text style={zoneStyles.cancelBtnText}>Cancelar</Text></TouchableOpacity>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-}
-
-const ecStyles = StyleSheet.create({
-  badge: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: T.infoBg, borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 4,
-  },
-  text: { fontSize: 11, fontWeight: '700', color: T.info },
-});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: T.background },
@@ -459,59 +357,6 @@ const styles = StyleSheet.create({
   },
   deletePoiText: { fontSize: 14, fontWeight: '600', color: T.error },
   zoneContainer: { flex: 1 },
-});
-
-const zoneStyles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12, backgroundColor: T.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  title: { ...Typography.h3, color: T.textPrimary },
-  addBtn: {
-    backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
-    paddingHorizontal: 16, paddingVertical: 10,
-    ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
-  },
-  addBtnText: { ...Typography.caption, fontWeight: '700', color: '#FFFFFF' },
-  card: {
-    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
-    padding: 16, ...Shadows.md, borderWidth: 1, borderColor: T.cardBorder,
-  },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  colorDot: {
-    width: 16, height: 16, borderRadius: 8,
-    borderWidth: 2, borderColor: '#FFFFFF', ...Shadows.xs,
-  },
-  cardName: { ...Typography.body, color: T.textPrimary, fontWeight: '700' },
-  cardDesc: { ...Typography.caption, color: T.textSecondary, marginTop: 2 },
-  cardMeta: { ...Typography.caption, color: T.textTertiary, marginTop: 2 },
-  empty: {
-    textAlign: 'center', color: T.textSecondary,
-    marginTop: 20, ...Typography.body,
-  },
-  formCard: {
-    backgroundColor: T.surfaceGlass, borderRadius: Sizes.radiusLg,
-    padding: 16, gap: 10, borderWidth: 1, borderColor: T.cardBorder,
-    ...Shadows.md,
-  },
-  formTitle: { ...Typography.h4, color: T.textPrimary, marginBottom: 2 },
-  input: {
-    backgroundColor: T.inputBg, borderWidth: 1.5, borderColor: T.inputBorder,
-    borderRadius: Sizes.radiusSm, padding: 12,
-    fontSize: 14, color: T.inputText,
-  },
-  textarea: { minHeight: 80 },
-  row: { flexDirection: 'row', gap: 10 },
-  half: { flex: 1 },
-  formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
-  saveBtn: {
-    flex: 1, backgroundColor: T.primary, borderRadius: Sizes.radiusSm,
-    padding: 14, alignItems: 'center', ...Shadows.sm,
-  },
-  saveBtnText: { ...Typography.button, color: '#FFFFFF', fontSize: 14 },
-  cancelBtn: {
-    flex: 1, backgroundColor: T.surface, borderRadius: Sizes.radiusSm,
-    padding: 14, alignItems: 'center', borderWidth: 1, borderColor: T.cardBorder,
-  },
-  cancelBtnText: { ...Typography.body, color: T.textSecondary, fontWeight: '600' },
 });
 
 const gateStyles = StyleSheet.create({

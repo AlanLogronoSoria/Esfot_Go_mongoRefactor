@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useCallback, useState, useRef } from 'react';
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import type { MapRegion, MapMarkerData } from '../domain/coordinates';
 import type { CampusLocation } from '../domain/location.entity';
 import { regionToBoundingBox } from '../domain/coordinates';
@@ -12,15 +12,15 @@ import { MockData } from '@/core/dev/mock-services';
 
 const repository = new ExpressLocationRepository();
 
-const CATEGORY_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  academico: { icon: '🏛️', color: '#1B6BB0', label: 'Académico' },
-  biblioteca: { icon: '📚', color: '#7C3AED', label: 'Biblioteca' },
-  servicios: { icon: '🍽️', color: '#059669', label: 'Servicios' },
-  deportes: { icon: '🏋️', color: '#DC2626', label: 'Deportes' },
-  eventos: { icon: '🎭', color: '#F59E0B', label: 'Eventos' },
-  estacionamiento: { icon: '🅿️', color: '#6B7280', label: 'Estacionamiento' },
-  entrada: { icon: '🚪', color: '#0EA5E9', label: 'Entrada' },
-  otro: { icon: '📍', color: '#9CA3AF', label: 'Otro' },
+const CATEGORY_CONFIG: Record<string, { color: string; label: string }> = {
+  academico: { color: '#1B6BB0', label: 'Académico' },
+  biblioteca: { color: '#7C3AED', label: 'Biblioteca' },
+  servicios: { color: '#059669', label: 'Servicios' },
+  deportes: { color: '#DC2626', label: 'Deportes' },
+  eventos: { color: '#F59E0B', label: 'Eventos' },
+  estacionamiento: { color: '#6B7280', label: 'Estacionamiento' },
+  entrada: { color: '#0EA5E9', label: 'Entrada' },
+  otro: { color: '#9CA3AF', label: 'Otro' },
 };
 
 export function getCategoryConfig(category: string) {
@@ -72,6 +72,12 @@ export function useMapSearch(searchQuery: string, debounceMs: number = 300) {
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
   const setSearch = useCallback(
     (query: string) => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -110,6 +116,7 @@ export function useMapClusters(
   const battery = useBatteryOptimizer();
   const queryClient = useQueryClient();
   const prevRegionRef = useRef<MapRegion | null>(null);
+  const prevCategoryRef = useRef<string | undefined>(undefined);
 
   const regionKey = useMemo(() => {
     if (!region) return '';
@@ -123,11 +130,14 @@ export function useMapClusters(
 
   const viewportMarkers = useMemo(() => {
     if (!region) return allMarkers;
-    if (prevRegionRef.current && regionKey ===
-      `${prevRegionRef.current.latitude.toFixed(4)},${prevRegionRef.current.longitude.toFixed(4)}`) {
+    const prevKey = prevRegionRef.current
+      ? `${prevRegionRef.current.latitude.toFixed(4)},${prevRegionRef.current.longitude.toFixed(4)}`
+      : '';
+    if (prevRegionRef.current && regionKey === prevKey && prevCategoryRef.current === category) {
       return allMarkers;
     }
     prevRegionRef.current = region;
+    prevCategoryRef.current = category;
 
     const box = regionToBoundingBox(region);
     const cacheKey = geoCache.buildViewportKey(box, `vp:${category ?? 'all'}`);

@@ -132,7 +132,7 @@ export class ExpressPoiRepository {
   async getZones(): Promise<RestrictedZone[]> {
     if (isDevMode()) return [];
     const { data, error } = await httpClient.get<ZoneDto[]>('/admin/mapa/zonas');
-    if (error) return [];
+    if (error) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
     return (data ?? []).map(mapDtoToZone);
   }
 

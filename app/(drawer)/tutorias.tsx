@@ -106,7 +106,7 @@ export default function TutoriasScreen() {
         ))}
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filters}>
         {STATUS_CHIPS.map((chip) => (
           <TouchableOpacity key={chip.key} style={[styles.chip, statusFilter === chip.key && styles.chipActive]} onPress={() => setStatusFilter(chip.key)}>
             <Text style={[styles.chipText, statusFilter === chip.key && styles.chipTextActive]}>{chip.label}</Text>
@@ -179,7 +179,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row', marginHorizontal: Sizes.paddingMd, marginBottom: 8, gap: 8,
   },
   ownerChip: {
-    flex: 1, paddingVertical: 11, borderRadius: Sizes.radiusSm,
+    flex: 1, maxHeight: 44, justifyContent: 'center',
+    paddingVertical: 10, borderRadius: Sizes.radiusSm,
     backgroundColor: T.surfaceGlass, alignItems: 'center',
     borderWidth: 1.5, borderColor: T.cardBorder,
   },
@@ -190,13 +191,18 @@ const styles = StyleSheet.create({
   ownerChipText: { ...Typography.caption, fontWeight: '600', color: T.textSecondary },
   ownerChipTextActive: { color: T.primary },
 
+  filterScroll: { maxHeight: 44, flexGrow: 0 },
   filters: { paddingHorizontal: Sizes.paddingMd, gap: 8, marginBottom: 8 },
-  chip: { backgroundColor: T.surfaceGlass, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: T.cardBorder },
+  chip: {
+    height: 36, justifyContent: 'center',
+    backgroundColor: T.surfaceGlass, borderRadius: 20,
+    paddingHorizontal: 14, borderWidth: 1, borderColor: T.cardBorder,
+  },
   chipActive: { backgroundColor: T.primary, borderColor: T.primary },
   chipText: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
   chipTextActive: { color: '#FFFFFF' },
 
-  list: { padding: Sizes.paddingMd, paddingTop: 4 },
+  list: { padding: Sizes.paddingMd, paddingTop: 4, paddingBottom: 80 },
   cardPast: { opacity: 0.55 },
   cardHeader: { gap: 2 },
   cardTitleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
