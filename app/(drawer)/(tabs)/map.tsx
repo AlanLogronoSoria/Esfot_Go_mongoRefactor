@@ -7,6 +7,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
+  FadeIn,
+  FadeOut,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,8 +32,10 @@ import { useCampusGraph, useOptimalRoute } from '@/features/graph/application/gr
 import { findNearestNode, graphRouteToWaypoints } from '@/features/graph/application/graph-route.service';
 import type { RouteCalculation } from '@/features/map/services/route-calculator';
 import type { GraphRouteResult } from '@/features/graph/application/graph-route.service';
+import { OsrmRoutingRepository } from '@/features/map/infrastructure/osrm-routing.repository';
+import type { RoutingResult } from '@/features/map/domain/routing.repository';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
-import { MapPin } from 'lucide-react-native';
+import { MapPin, Navigation, X } from 'lucide-react-native';
 
 const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
 
@@ -59,6 +63,7 @@ export default function MapScreen() {
   const [isLocating, setIsLocating] = useState(false);
   const [route, setRoute] = useState<RouteCalculation | null>(null);
   const [graphRoute, setGraphRoute] = useState<GraphRouteResult | null>(null);
+  const [osrmRoute, setOsrmRoute] = useState<RoutingResult | null>(null);
   const [fromNodeId, setFromNodeId] = useState<string | null>(null);
   const [toNodeId, setToNodeId] = useState<string | null>(null);
 
@@ -85,6 +90,8 @@ export default function MapScreen() {
 
   if (graphError) console.log('[MapScreen] Error cargando grafo:', (graphError as Error)?.message ?? graphError);
 
+  const osrmRepoRef = useRef(new OsrmRoutingRepository());
+
   const computeRoute = useCallback(
     (dest: GeoCoordinate) => {
       if (!userLocation) return;
@@ -96,11 +103,18 @@ export default function MapScreen() {
         const fromNode = findNearestNode(campusGraph, origin);
         const toNode = findNearestNode(campusGraph, dest);
         if (fromNode && toNode && fromNode !== toNode) {
-          setFromNodeId(fromNode); setToNodeId(toNode); setRoute(null); return;
+          setFromNodeId(fromNode); setToNodeId(toNode); setRoute(null); setOsrmRoute(null); return;
         }
       }
-      const calc = calculateOptimalRoute(origin, dest);
-      setRoute(calc); setGraphRoute(null); setFromNodeId(null); setToNodeId(null);
+      osrmRepoRef.current.getRoute(origin, dest)
+        .then((osrmResult) => {
+          setRoute(null); setGraphRoute(null); setOsrmRoute(osrmResult); setFromNodeId(null); setToNodeId(null);
+        })
+        .catch((osrmErr: unknown) => {
+          console.log('[MapScreen] OSRM falló, usando ruta directa:', (osrmErr as Error)?.message);
+          const calc = calculateOptimalRoute(origin, dest);
+          setRoute(calc); setGraphRoute(null); setOsrmRoute(null); setFromNodeId(null); setToNodeId(null);
+        });
     },
     [userLocation, campusGraph],
   );
@@ -143,9 +157,25 @@ export default function MapScreen() {
     computeRoute({ latitude: location.latitude, longitude: location.longitude });
   }, [computeRoute]);
   const handleClearRoute = useCallback(() => {
-    setRoute(null); setGraphRoute(null); setFromNodeId(null); setToNodeId(null);
+    setRoute(null); setGraphRoute(null); setOsrmRoute(null); setFromNodeId(null); setToNodeId(null);
     setSelectedLocation(null);
   }, []);
+
+  const handleMapPress = useCallback((event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+    const coord = event.nativeEvent.coordinate;
+    const dest: CampusLocation = {
+      id: `tap-${Date.now()}`,
+      name: 'Destino seleccionado',
+      description: `${coord.latitude.toFixed(5)}, ${coord.longitude.toFixed(5)}`,
+      category: 'otro',
+      latitude: coord.latitude,
+      longitude: coord.longitude,
+      imageUrl: null,
+      createdAt: new Date().toISOString(),
+    };
+    setSelectedLocation(dest);
+    computeRoute({ latitude: coord.latitude, longitude: coord.longitude });
+  }, [computeRoute]);
 
   const handleMyLocation = useCallback(() => {
     if (!userLocation) return;
@@ -196,6 +226,7 @@ export default function MapScreen() {
         rotateEnabled={false}
         toolbarEnabled={false}
         pitchEnabled={false}
+        onPress={handleMapPress}
       >
         {userLocation && (
           <>
@@ -233,12 +264,12 @@ export default function MapScreen() {
         {busLocations?.map((bus) => (
           <BusMarker key={bus.id} bus={bus} color={activeRoute?.color} />
         ))}
-        {(route || graphRoute) && (route?.waypoints.length ?? graphRoute?.waypoints.length ?? 0) > 1 && (
+        {(route || graphRoute || osrmRoute) && (route?.waypoints.length ?? graphRoute?.waypoints.length ?? osrmRoute?.waypoints.length ?? 0) > 1 && (
           <Polyline
-            coordinates={graphRoute ? graphRoute.waypoints : route!.waypoints}
-            strokeColor={graphRoute ? T.success : T.primary}
-            strokeWidth={graphRoute ? 6 : 5}
-            lineDashPattern={graphRoute ? undefined : [8, 6]}
+            coordinates={graphRoute ? graphRoute.waypoints : osrmRoute ? osrmRoute.waypoints : route!.waypoints}
+            strokeColor={graphRoute ? T.success : osrmRoute ? '#2563EB' : T.primary}
+            strokeWidth={graphRoute ? 6 : osrmRoute ? 5 : 5}
+            lineDashPattern={graphRoute ? undefined : osrmRoute ? undefined : [8, 6]}
             lineCap="round"
             lineJoin="round"
           />
@@ -278,11 +309,40 @@ export default function MapScreen() {
 
       {/* Route info card */}
       <RouteInfoCard
-        route={route}
-        graphRoute={graphRoute}
-        isVisible={!!(route || graphRoute)}
+        route={osrmRoute ? null : route}
+        graphRoute={osrmRoute ? null : graphRoute}
+        isVisible={!!(route || graphRoute || osrmRoute)}
         onClear={handleClearRoute}
       />
+
+      {/* OSRM route info — compact inline */}
+      {osrmRoute && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          style={styles.osrmCard}
+        >
+          <View style={styles.osrmContent}>
+            <View style={styles.osrmIconWrap}>
+              <Navigation size={18} strokeWidth={1.8} color="#2563EB" />
+            </View>
+            <View style={styles.osrmInfo}>
+              <Text style={styles.osrmLabel}>Ruta externa (OSRM)</Text>
+              <Text style={styles.osrmValue}>
+                {osrmRoute.distance < 1000
+                  ? `${osrmRoute.distance} m`
+                  : `${(osrmRoute.distance / 1000).toFixed(1)} km`}{' '}
+                <Text style={styles.osrmDistance}>
+                  (~{Math.round(osrmRoute.duration / 60)} min)
+                </Text>
+              </Text>
+            </View>
+          </View>
+          <Pressable style={styles.clearBtn} onPress={handleClearRoute} hitSlop={8}>
+            <X size={14} strokeWidth={2.2} color={T.textSecondary} />
+          </Pressable>
+        </Animated.View>
+      )}
 
       {/* Map controls — right edge */}
       <View style={styles.rightControls}>
@@ -314,7 +374,7 @@ export default function MapScreen() {
       {/* Location detail */}
       <LocationDetailSheet
         location={selectedLocation}
-        onClose={() => { setSelectedLocation(null); setRoute(null); }}
+        onClose={() => { setSelectedLocation(null); setRoute(null); setGraphRoute(null); setOsrmRoute(null); }}
         onNavigate={() => {}}
       />
     </View>
@@ -363,5 +423,59 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: T.cardBorder,
     ...Shadows.xl,
+  },
+  osrmCard: {
+    position: 'absolute',
+    top: 130,
+    left: 16,
+    right: 16,
+    backgroundColor: T.surfaceGlass,
+    borderRadius: Sizes.radiusLg,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#2563EB30',
+    ...Shadows.lg,
+    zIndex: 200,
+  },
+  osrmContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  osrmIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#2563EB18',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  osrmInfo: { flex: 1, gap: 2 },
+  osrmLabel: {
+    ...Typography.overline,
+    color: '#2563EB',
+    fontWeight: '700',
+  },
+  osrmValue: {
+    ...Typography.h4,
+    color: T.textPrimary,
+    fontSize: 16,
+  },
+  osrmDistance: {
+    ...Typography.bodySm,
+    color: T.textSecondary,
+    fontWeight: '400',
+  },
+  clearBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: T.surfaceBorder,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 8,
   },
 });

@@ -1,6 +1,5 @@
 import { Sizes, LightTheme as T, Shadows } from "@/constants/design-system";
 import { AppError } from "@/core/errors/app-error";
-import type { LoginInput } from "@/features/auth/domain/auth.schema";
 import { loginSchema } from "@/features/auth/domain/auth.schema";
 import { useExpressAuthStore } from "@/services/express/express-auth.store";
 import { GlassButton, GlassInput } from "@/shared/components/premium";
@@ -18,8 +17,12 @@ import {
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { Eye, EyeOff } from "lucide-react-native";
+import { z } from "zod";
 
 type LoginRole = "estudiante" | "docente" | "admin";
+
+type LoginFormData = z.output<typeof loginSchema>;
+type LoginFormInput = z.input<typeof loginSchema>;
 
 const ERROR_MAP: Record<string, string> = {
   INVALID_CREDENTIALS: "Correo o contraseña incorrectos",
@@ -60,13 +63,13 @@ export function LoginForm() {
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginInput>({
+  } = useForm<LoginFormInput>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
   const onSubmit = useCallback(
-    async (d: LoginInput) => {
+    async (d: LoginFormInput) => {
       setErr(null);
       try {
         let user: { email: string; rol: string; _id: string };
