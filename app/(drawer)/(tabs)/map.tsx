@@ -387,8 +387,9 @@ export default function MapScreen() {
       <LocationDetailSheet
         location={selectedLocation}
         onClose={() => { setSelectedLocation(null); setRoute(null); setGraphRoute(null); setOsrmRoute(null); }}
-        onNavigate={() => {}}
+        onNavigate={(loc) => computeRoute({ latitude: loc.latitude, longitude: loc.longitude })}
         onMoreInfo={(loc) => setInfoLocation(loc)}
+        onClearRoute={() => { setRoute(null); setGraphRoute(null); setOsrmRoute(null); }}
       />
 
       {infoLocation && (

@@ -30,6 +30,7 @@ export function BusRoutesAdmin() {
   const { data: graph, isLoading: graphLoading } = useCampusGraph();
 
   const mapRef = useRef<MapView>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
   const [showForm, setShowForm] = useState<'route' | 'stop' | null>(null);
@@ -185,7 +186,12 @@ export function BusRoutesAdmin() {
   if (isLoading) return <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
+    <ScrollView
+      ref={scrollRef}
+      contentContainerStyle={s.container}
+      keyboardShouldPersistTaps="handled"
+      nestedScrollEnabled
+    >
       <View style={s.header}>
         <Text style={s.title}>Gestión de Rutas</Text>
         <AppButton size="sm" label="+ Ruta" onPress={() => {
@@ -193,40 +199,9 @@ export function BusRoutesAdmin() {
           setName(''); setDesc(''); setColor('#1B6BB0');
           setEditRoute(null);
           setShowForm('route');
+          scrollRef.current?.scrollTo({ y: 0, animated: true });
         }} />
       </View>
-
-      {routes.map((route) => (
-        <AppCard key={route.id} style={[!route.isActive && { opacity: 0.5 }, s.routeCard]}>
-          <View style={s.cardHeader}>
-            <View style={[s.colorDot, { backgroundColor: route.color }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={s.routeName}>{route.name}</Text>
-              {route.description && <Text style={s.routeDesc}>{route.description}</Text>}
-              {(route.estimatedTime || route.distance || route.direction) && (
-                <View style={s.routeMeta}>
-                  {route.direction && <Text style={s.routeMetaText}>{route.direction}</Text>}
-                  {route.estimatedTime && <Text style={s.routeMetaText}>{route.estimatedTime} min</Text>}
-                  {route.distance && <Text style={s.routeMetaText}>{(route.distance / 1000).toFixed(1)} km</Text>}
-                </View>
-              )}
-            </View>
-            <View style={s.routeActions}>
-              <AppButton label="" variant="ghost" size="sm" icon={<Edit2 size={16} color={T.textSecondary} />} onPress={() => startEditRoute(route)} />
-              <AppButton label="" variant="ghost" size="sm" icon={<Trash2 size={16} color={T.error} />} onPress={() => handleDeleteRoute(route)} />
-            </View>
-          </View>
-          <View style={s.stopSection}>
-            <AppButton variant="outline" size="sm" label="+ Parada" onPress={() => {
-              setSelectedRoute(route);
-              setShowForm('stop');
-              setStopName(''); setStopLat(''); setStopLng(''); setStopOrder('');
-            }} style={{ alignSelf: 'flex-start' }} />
-          </View>
-        </AppCard>
-      ))}
-
-      {routes.length === 0 && <EmptyState icon={Bus} title="No hay rutas" description="No se han configurado rutas de Polibus." />}
 
       {showForm === 'route' && (
         <AppCard style={{ gap: 12 }}>
@@ -389,6 +364,38 @@ export function BusRoutesAdmin() {
           </View>
         </AppCard>
       )}
+
+      {routes.map((route) => (
+        <AppCard key={route.id} style={[!route.isActive && { opacity: 0.5 }, s.routeCard]}>
+          <View style={s.cardHeader}>
+            <View style={[s.colorDot, { backgroundColor: route.color }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.routeName}>{route.name}</Text>
+              {route.description && <Text style={s.routeDesc}>{route.description}</Text>}
+              {(route.estimatedTime || route.distance || route.direction) && (
+                <View style={s.routeMeta}>
+                  {route.direction && <Text style={s.routeMetaText}>{route.direction}</Text>}
+                  {route.estimatedTime && <Text style={s.routeMetaText}>{route.estimatedTime} min</Text>}
+                  {route.distance && <Text style={s.routeMetaText}>{(route.distance / 1000).toFixed(1)} km</Text>}
+                </View>
+              )}
+            </View>
+            <View style={s.routeActions}>
+              <AppButton label="" variant="ghost" size="sm" icon={<Edit2 size={16} color={T.textSecondary} />} onPress={() => startEditRoute(route)} />
+              <AppButton label="" variant="ghost" size="sm" icon={<Trash2 size={16} color={T.error} />} onPress={() => handleDeleteRoute(route)} />
+            </View>
+          </View>
+          <View style={s.stopSection}>
+            <AppButton variant="outline" size="sm" label="+ Parada" onPress={() => {
+              setSelectedRoute(route);
+              setShowForm('stop');
+              setStopName(''); setStopLat(''); setStopLng(''); setStopOrder('');
+            }} style={{ alignSelf: 'flex-start' }} />
+          </View>
+        </AppCard>
+      ))}
+
+      {routes.length === 0 && <EmptyState icon={Bus} title="No hay rutas" description="No se han configurado rutas de Polibus." />}
 
       {showForm === 'stop' && (
         <AppCard style={{ gap: 10 }}>

@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useRef, useMemo, useCallback, useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import Animated, { FadeIn, SlideInUp, FadeOut } from 'react-native-reanimated';
+import BottomSheet, { BottomSheetView, BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import * as Haptics from 'expo-haptics';
-import { Navigation, Info, Star } from 'lucide-react-native';
+import { Navigation, Info, Star, XCircle } from 'lucide-react-native';
 import { getCategoryConfig } from '@/features/map/application/map.hooks';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { useFavoritesStore } from '@/store/favorites.store';
@@ -13,25 +13,80 @@ interface Props {
   onClose: () => void;
   onNavigate?: (l: CampusLocation) => void;
   onMoreInfo?: (l: CampusLocation) => void;
+  onClearRoute?: () => void;
 }
 
-export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo }: Props) {
+export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo, onClearRoute }: Props) {
+  const sheetRef = useRef<BottomSheet>(null);
+  const [routeActive, setRouteActive] = useState(false);
   const isFav = useFavoritesStore((s) => location ? s.isFavorite(location.id) : false);
   const toggleFavorite = useFavoritesStore((s) => s.toggleLocation);
 
-  if (!location) return null;
+  const snapPoints = useMemo(() => ['35%', '65%', '92%'], []);
+
+  useEffect(() => {
+    if (location) {
+      sheetRef.current?.snapToIndex(0);
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [location]);
+
+  useEffect(() => {
+    setRouteActive(false);
+  }, [location?.id]);
+
+  const handleChange = useCallback((index: number) => {
+    if (index < 0) {
+      if (routeActive) {
+        sheetRef.current?.snapToIndex(0);
+        return;
+      }
+      onClose();
+    }
+  }, [onClose, routeActive]);
+
+  const handleRouteToggle = useCallback(() => {
+    if (routeActive) {
+      setRouteActive(false);
+      onClearRoute?.();
+    } else {
+      setRouteActive(true);
+      onNavigate?.(location);
+    }
+  }, [routeActive, onNavigate, onClearRoute, location]);
+
+  if (!location) {
+    return (
+      <BottomSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        index={-1}
+        enablePanDownToClose
+        onChange={handleChange}
+        handleIndicatorStyle={{ backgroundColor: T.textMuted }}
+        backgroundStyle={{ backgroundColor: T.surfaceGlass }}
+        style={s.shadow}
+      >
+        <BottomSheetView style={s.empty} />
+      </BottomSheet>
+    );
+  }
+
   const config = getCategoryConfig(location.category);
 
   return (
-    <Animated.View
-      entering={SlideInUp.springify().damping(20).stiffness(200)}
-      exiting={FadeOut.duration(200)}
-      style={s.overlay}
+    <BottomSheet
+      ref={sheetRef}
+      snapPoints={snapPoints}
+      index={0}
+      enablePanDownToClose
+      onChange={handleChange}
+      handleIndicatorStyle={{ backgroundColor: T.textMuted }}
+      backgroundStyle={{ backgroundColor: T.surfaceGlass }}
+      style={s.shadow}
     >
-      <Pressable style={s.backdrop} onPress={onClose} />
-      <Animated.View entering={FadeIn.delay(100)} style={s.sheet}>
-        <View style={s.handle} />
-
+      <BottomSheetScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={s.header}>
           <View style={[s.iconWrap, { backgroundColor: config.color + '18' }]}>
             <Text style={[s.iconLetter, { color: config.color }]}>
@@ -73,14 +128,18 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo 
 
         {onNavigate && (
           <Pressable
-            style={s.navBtn}
+            style={[s.navBtn, routeActive && s.navBtnActive]}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              onNavigate(location);
+              handleRouteToggle();
             }}
           >
-            <Navigation size={18} strokeWidth={2} color="#FFFFFF" />
-            <Text style={s.navT}>Como llegar</Text>
+            {routeActive ? (
+              <XCircle size={18} strokeWidth={2} color="#FFFFFF" />
+            ) : (
+              <Navigation size={18} strokeWidth={2} color="#FFFFFF" />
+            )}
+            <Text style={s.navT}>{routeActive ? 'Dejar Ruta' : 'Como llegar'}</Text>
           </Pressable>
         )}
 
@@ -96,31 +155,27 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo 
             <Text style={s.infoT}>Mas Informacion</Text>
           </Pressable>
         )}
-      </Animated.View>
-    </Animated.View>
+      </BottomSheetScrollView>
+    </BottomSheet>
   );
 }
 
 const s = StyleSheet.create({
-  overlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0, top: 0,
-    justifyContent: 'flex-end', zIndex: 999, elevation: 999,
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
   },
-  backdrop: {
-    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.15)',
+  empty: {
+    height: 1,
   },
-  sheet: {
-    backgroundColor: T.surfaceGlass,
-    borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    padding: Sizes.paddingLg, paddingTop: 12, gap: 16,
-    borderWidth: 1, borderColor: T.cardBorder,
-    borderBottomWidth: 0,
-    ...Shadows.xl,
-  },
-  handle: {
-    width: 36, height: 5, borderRadius: 3,
-    backgroundColor: T.textMuted, alignSelf: 'center', marginBottom: 10,
+  scrollContent: {
+    padding: Sizes.paddingLg,
+    paddingTop: 4,
+    gap: 16,
+    paddingBottom: 80,
   },
   header: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   iconWrap: {
@@ -147,6 +202,10 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 10, backgroundColor: T.primary, borderRadius: 16,
     padding: 16, ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
+  },
+  navBtnActive: {
+    backgroundColor: T.error,
+    shadowColor: T.error,
   },
   navT: { ...Typography.button, color: '#FFFFFF', fontSize: 15 },
   infoBtn: {
