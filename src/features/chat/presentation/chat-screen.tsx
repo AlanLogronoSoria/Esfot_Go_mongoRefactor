@@ -22,6 +22,7 @@ import { PrivateChatRoom } from './private-chat-room';
 export function ChatScreen() {
   const user = useAuthStore((s) => s.user);
   const username = user?.fullName?.trim() || user?.email?.split('@')[0] || 'Usuario';
+  const canSend = user?.role === 'administrador' || user?.role === 'gestor' || user?.role === 'docente';
 
   const { messages, isConnected, usersOnline, sendMessage, notification, clearNotification } = useChat();
   const [inputText, setInputText] = useState('');
@@ -178,30 +179,38 @@ export function ChatScreen() {
         initialNumToRender={20}
       />
 
-      <View style={styles.inputBar}>
-        <View style={styles.inputWrap}>
-          <TextInput
-            style={styles.input}
-            placeholder="Escribe un mensaje..."
-            placeholderTextColor={T.inputPlaceholder}
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            maxLength={500}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-            blurOnSubmit
-          />
+      {canSend ? (
+        <View style={styles.inputBar}>
+          <View style={styles.inputWrap}>
+            <TextInput
+              style={styles.input}
+              placeholder="Escribe un mensaje..."
+              placeholderTextColor={T.inputPlaceholder}
+              value={inputText}
+              onChangeText={setInputText}
+              multiline
+              maxLength={500}
+              onSubmitEditing={handleSend}
+              returnKeyType="send"
+              blurOnSubmit
+            />
+          </View>
+          <TouchableOpacity
+            style={[styles.sendBtn, !inputText.trim() && styles.sendBtnOff]}
+            onPress={handleSend}
+            disabled={!inputText.trim()}
+            activeOpacity={0.8}
+          >
+            <Send size={18} color={inputText.trim() ? '#FFFFFF' : T.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={[styles.sendBtn, !inputText.trim() && styles.sendBtnOff]}
-          onPress={handleSend}
-          disabled={!inputText.trim()}
-          activeOpacity={0.8}
-        >
-          <Send size={18} color={inputText.trim() ? '#FFFFFF' : T.textSecondary} />
-        </TouchableOpacity>
-      </View>
+      ) : (
+        <View style={styles.readOnlyBar}>
+          <Text style={styles.readOnlyText}>
+            Solo docentes y administradores pueden enviar mensajes
+          </Text>
+        </View>
+      )}
         </>
       )}
 
@@ -307,6 +316,16 @@ const styles = StyleSheet.create({
     ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.35,
   },
   sendBtnOff: { backgroundColor: T.surface, borderWidth: 1.5, borderColor: T.cardBorder },
+  readOnlyBar: {
+    padding: 14,
+    backgroundColor: T.warningBg,
+    borderTopWidth: 1,
+    borderTopColor: T.divider,
+    alignItems: 'center',
+  },
+  readOnlyText: {
+    fontSize: 12, color: T.textSecondary, textAlign: 'center',
+  },
 
   tabBar: {
     flexDirection: 'row',

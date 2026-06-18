@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, Platform,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
+import BottomSheet, { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import Toast from 'react-native-toast-message';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker, Polygon } from 'react-native-maps';
 import type { MapRegion, MapMarkerData } from '@/features/map/domain/coordinates';
@@ -31,6 +31,8 @@ const EPN_REGION: MapRegion = {
 export default function AdminMapScreen() {
   const role = useAuthStore((s) => s.user?.role);
   const mapRef = useRef<MapView>(null);
+  const sheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ['15%', '50%', '92%'], []);
   const { pois, isLoading, createPoi, updatePoi, deletePoi } = useAdminPois();
   const { zones, isLoading: zonesLoading, createZone, updateZone, deleteZone } = useAdminZones();
 
@@ -193,14 +195,22 @@ export default function AdminMapScreen() {
         />
       )}
 
-      <View style={styles.panel}>
-        <View style={styles.panelHeader}>
-          <Text style={styles.panelTitle}>Ubicaciones ({pois.length})</Text>
-        </View>
-
-        <FlashList
+      <BottomSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        index={0}
+        enablePanDownToClose={false}
+        handleIndicatorStyle={{ backgroundColor: T.textMuted }}
+        backgroundStyle={{ backgroundColor: T.surfaceGlass }}
+      >
+        <BottomSheetFlatList
           data={pois}
           keyExtractor={(item) => item.id}
+          ListHeaderComponent={
+            <View style={styles.panelHeader}>
+              <Text style={styles.panelTitle}>Ubicaciones ({pois.length})</Text>
+            </View>
+          }
           renderItem={({ item }) => (
             <TouchableOpacity
               style={[styles.poiItem, selectedPoi?.id === item.id && styles.poiItemSelected]}
@@ -231,8 +241,10 @@ export default function AdminMapScreen() {
             </TouchableOpacity>
           )}
           style={styles.poiList}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
+          keyboardShouldPersistTaps="handled"
         />
-      </View>
+      </BottomSheet>
 
       {panelVisible && (
         <View style={styles.formOverlay}>
@@ -290,14 +302,15 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   toolbar: {
     position: 'absolute',
-    top: 12, left: 12, right: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    bottom: 24, right: 20,
+    alignItems: 'flex-end', gap: 8,
     zIndex: 100,
   },
   toolbarBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: T.surfaceGlass,
     borderRadius: Sizes.radiusFull,
-    paddingHorizontal: 14, paddingVertical: 8,
+    paddingHorizontal: 18, paddingVertical: 12,
     ...Shadows.md,
     borderWidth: 1, borderColor: T.cardBorder,
   },
@@ -306,21 +319,12 @@ const styles = StyleSheet.create({
   toolbarBtnTextActive: { color: '#FFFFFF' },
   hint: { ...Typography.caption, color: T.textSecondary, flex: 1 },
   loader: { position: 'absolute', top: '50%', alignSelf: 'center' },
-  panel: {
-    backgroundColor: T.surfaceGlass,
-    borderTopLeftRadius: Sizes.radiusXl,
-    borderTopRightRadius: Sizes.radiusXl,
-    padding: 16,
-    maxHeight: 220,
-    borderWidth: 1, borderColor: T.cardBorder,
-    ...Shadows.xl,
-  },
   panelHeader: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', marginBottom: 8,
   },
   panelTitle: { ...Typography.h4, color: T.textPrimary },
-  poiList: { maxHeight: 140 },
+  poiList: { flex: 1 },
   poiItem: {
     flexDirection: 'row', alignItems: 'center',
     padding: 12, borderRadius: Sizes.radiusSm,

@@ -14,4 +14,11 @@ export const ChatRepository = {
     console.log(`[ChatRepo] ${messages.length} mensajes cargados del historial (room: ${room})`);
     return messages;
   },
+
+  async sendMessage(room: string, from: string, text: string): Promise<void> {
+    const { error } = await httpClient.post('/chat/messages', { room, from, text });
+    if (error) {
+      console.log('[ChatRepo] Error guardando mensaje:', error);
+    }
+  },
 };

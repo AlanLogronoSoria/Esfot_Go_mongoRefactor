@@ -61,20 +61,17 @@ export function usePrivateChat(conversationId: string | null) {
         text: text.trim(),
       };
 
+      PrivateChatRepository.sendMessage(
+        conversationId,
+        user.id,
+        username,
+        text.trim(),
+      ).catch((err) => {
+        console.log('[usePrivateChat] Error guardando mensaje vía REST:', (err as Error)?.message);
+      });
+
       if (socketRef.current?.connected) {
         socketRef.current.emit('private-message', payload);
-      } else {
-        // Fallback: REST POST si el socket no está conectado
-        try {
-          await PrivateChatRepository.sendMessage(
-            conversationId,
-            user.id,
-            username,
-            text.trim(),
-          );
-        } catch (err) {
-          console.log('[usePrivateChat] Error enviando mensaje vía REST:', (err as Error)?.message);
-        }
       }
     },
     [conversationId, user, username],

@@ -137,13 +137,16 @@ export function useChat(): ChatHookResult {
   const sendMessage = useCallback((text: string) => {
     const socket = socketRef.current;
     if (!socket || !socket.connected || !text.trim()) return;
+    const role = user?.role;
+    if (role !== 'administrador' && role !== 'gestor' && role !== 'docente') return;
 
     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const message = { text: text.trim(), from: username, timestamp, isOwn: true };
 
     socket.emit('enviar-mensaje', { text: text.trim(), from: username, timestamp });
+    ChatRepository.sendMessage('general', username, text.trim());
     setMessages((prev) => [...prev, message]);
-  }, [username]);
+  }, [username, user?.role]);
 
   const clearNotification = useCallback(() => {
     setNotification(null);
