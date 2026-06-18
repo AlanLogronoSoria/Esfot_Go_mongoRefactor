@@ -65,10 +65,15 @@ export function useRouting(campusGraph: CampusGraph | undefined) {
             }
             return;
           }
+          // Nodes found but no graph path — stay inside campus, no fallback
+          if (!abortRef.current) {
+            setState((s) => ({ ...s, status: 'error', error: 'No se encontró una ruta interna en el campus' }));
+          }
+          return;
         }
       }
 
-      // 2. Try OSRM external routing
+      // 2. Try OSRM only when no campus graph nodes are nearby (user is outside campus)
       try {
         if (!abortRef.current) {
           const osrmResult = await osrmRepo.getRoute(origin, destination);

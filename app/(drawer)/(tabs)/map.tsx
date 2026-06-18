@@ -129,12 +129,9 @@ export default function MapScreen() {
   React.useEffect(() => {
     if (optimalGraphRoute && campusGraph) {
       setGraphRoute(graphRouteToWaypoints(campusGraph, optimalGraphRoute));
-    } else if (fromNodeId && toNodeId && !optimalGraphRoute && userLocation && selectedLocation) {
-      setRoute(calculateOptimalRoute(
-        { latitude: userLocation.coords.latitude, longitude: userLocation.coords.longitude },
-        { latitude: selectedLocation.latitude, longitude: selectedLocation.longitude },
-      ));
+    } else if (fromNodeId && toNodeId && !optimalGraphRoute) {
       setGraphRoute(null);
+      setRoute(null);
     }
   }, [optimalGraphRoute, campusGraph, fromNodeId, toNodeId, userLocation, selectedLocation]);
 
