@@ -14,6 +14,7 @@ import { BuildingCard, type Building } from '@/components/ui/BuildingCard';
 import { RouteCard, type Route } from '@/components/ui/RouteCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { useFavoritesByType, useRemoveFavorite } from '@/features/favoritos/application/favorite.hooks';
+import { useFavoritesStore } from '@/store/favorites.store';
 import type { Favorite } from '@/features/favoritos/domain/favorite.entity';
 
 type FavTab = 'aulas' | 'edificios' | 'rutas' | 'ubicaciones';
@@ -46,15 +47,24 @@ export default function FavoritesScreen() {
   const [activeTab, setActiveTab] = useState<FavTab>('aulas');
   const { aulas, edificios, rutas, ubicaciones, total, isLoading, countByType } = useFavoritesByType();
   const removeFavorite = useRemoveFavorite();
+  const localLocations = useFavoritesStore((s) => s.locations);
+  const removeLocalLocation = useFavoritesStore((s) => s.removeLocation);
 
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
     scrollY.value = e.contentOffset.y;
   });
 
-  const totalFavs = total;
+  const totalFavs = total + localLocations.length;
 
   const handleRemoveFavorite = useCallback((tab: FavTab, id: string) => {
+    if (tab === 'ubicaciones') {
+      const isLocal = localLocations.some((f) => f.id === id);
+      if (isLocal) {
+        removeLocalLocation(id);
+        return;
+      }
+    }
     const items =
       tab === 'aulas' ? aulas :
       tab === 'edificios' ? edificios :
@@ -62,7 +72,7 @@ export default function FavoritesScreen() {
     const fav = items.find((f) => f.itemId === id);
     if (!fav) return;
     removeFavorite.mutate(fav.id);
-  }, [aulas, edificios, rutas, ubicaciones, removeFavorite]);
+  }, [aulas, edificios, rutas, ubicaciones, removeFavorite, localLocations, removeLocalLocation]);
 
   const renderContent = () => {
     if (isLoading) {
@@ -106,7 +116,18 @@ export default function FavoritesScreen() {
     const items =
       activeTab === 'aulas' ? aulas.map(favoriteToBuilding) :
       activeTab === 'edificios' ? edificios.map(favoriteToBuilding) :
-      ubicaciones.map(favoriteToBuilding);
+      activeTab === 'ubicaciones'
+        ? [
+            ...ubicaciones.map(favoriteToBuilding),
+            ...localLocations.map((loc): Building => ({
+              id: loc.id,
+              name: loc.name,
+              category: loc.category,
+              description: loc.description ?? '',
+              code: '',
+            })),
+          ]
+        : ubicaciones.map(favoriteToBuilding);
 
     if (items.length === 0) {
       const config: Record<FavTab, { Icon: React.ComponentType<any>; title: string; subtitle: string; action: string }> = {
@@ -179,7 +200,8 @@ export default function FavoritesScreen() {
             contentContainerStyle={styles.tabs}
           >
             {TABS.map((tab) => {
-              const count = countByType[tab.key];
+              const apiCount = countByType[tab.key];
+              const count = tab.key === 'ubicaciones' ? apiCount + localLocations.length : apiCount;
               const isActive = activeTab === tab.key;
               return (
                 <Pressable

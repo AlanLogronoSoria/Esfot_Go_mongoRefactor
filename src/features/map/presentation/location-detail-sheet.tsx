@@ -2,9 +2,10 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn, SlideInUp, FadeOut } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Navigation, Info } from 'lucide-react-native';
+import { Navigation, Info, Star } from 'lucide-react-native';
 import { getCategoryConfig } from '@/features/map/application/map.hooks';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
+import { useFavoritesStore } from '@/store/favorites.store';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 interface Props {
@@ -15,6 +16,9 @@ interface Props {
 }
 
 export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo }: Props) {
+  const isFav = useFavoritesStore((s) => location ? s.isFavorite(location.id) : false);
+  const toggleFavorite = useFavoritesStore((s) => s.toggleLocation);
+
   if (!location) return null;
   const config = getCategoryConfig(location.category);
 
@@ -40,6 +44,21 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo 
               <Text style={[s.badgeT, { color: config.color }]}>{config.label}</Text>
             </View>
           </View>
+          <Pressable
+            style={s.favBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              toggleFavorite(location);
+            }}
+            hitSlop={8}
+          >
+            <Star
+              size={22}
+              strokeWidth={isFav ? 0 : 2}
+              fill={isFav ? T.highlight : 'transparent'}
+              color={isFav ? T.highlight : T.textTertiary}
+            />
+          </Pressable>
         </View>
 
         {location.description && (
@@ -137,4 +156,8 @@ const s = StyleSheet.create({
     ...Shadows.sm,
   },
   infoT: { ...Typography.button, color: T.primary, fontSize: 15 },
+  favBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: 'center', alignItems: 'center',
+  },
 });
