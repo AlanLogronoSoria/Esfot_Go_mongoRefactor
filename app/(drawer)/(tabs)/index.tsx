@@ -1,31 +1,38 @@
-import React, { useMemo } from 'react';
-import {
-  View, Text, StyleSheet, Pressable, ActivityIndicator,
-} from 'react-native';
-import { Link, useRouter } from 'expo-router';
-import Animated, {
-  useAnimatedScrollHandler, useSharedValue, FadeInDown,
-  useAnimatedStyle, withSpring,
-} from 'react-native-reanimated';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Haptics from 'expo-haptics';
-import { useAuthStore } from '@/store/auth.store';
+import { CategoryChip, type Category } from '@/components/ui/CategoryChip';
+import { EventCard } from '@/components/ui/EventCard';
+import { GlassHeader } from '@/components/ui/GlassHeader';
+import { HeroBanner } from '@/components/ui/HeroBanner';
+import { LocationCard } from '@/components/ui/LocationCard';
+import { SectionHeader } from '@/components/ui/SectionHeader';
+import { TransportCard } from '@/components/ui/TransportCard';
+import { Shadows, Sizes, LightTheme as T, Typography } from '@/constants/design-system';
 import { UserEntity } from '@/features/auth/domain/user.entity';
+import { GpsPermissionPrompt } from '@/features/auth/presentation/gps-permission-prompt';
 import { useInfiniteEvents } from '@/features/events/application/event.hooks';
 import { useBusRoutes } from '@/features/polibus/application/bus.hooks';
-import { useLocation } from '@/hooks/useLocation';
 import { useLocationPermission } from '@/hooks/use-location-permission';
-import { GpsPermissionPrompt } from '@/features/auth/presentation/gps-permission-prompt';
-import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
-import { Map, Bus, Calendar, User, MapPin, CalendarDays, Building2 } from 'lucide-react-native';
-import { GlassHeader } from '@/components/ui/GlassHeader';
-import { CategoryChip, type Category } from '@/components/ui/CategoryChip';
-import { SectionHeader } from '@/components/ui/SectionHeader';
-import { HeroBanner } from '@/components/ui/HeroBanner';
-import { EventCard } from '@/components/ui/EventCard';
-import { TransportCard } from '@/components/ui/TransportCard';
-import { LocationCard } from '@/components/ui/LocationCard';
+import { useLocation } from '@/hooks/useLocation';
+import { useAuthStore } from '@/store/auth.store';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Link, useRouter } from 'expo-router';
+import { Building2, Bus, CalendarDays, MapPin, User } from 'lucide-react-native';
+import React, { useMemo } from 'react';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import Animated, {
+  FadeInDown,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CATEGORIES: Category[] = [
   { key: 'todos', label: 'Todos' },
@@ -33,36 +40,6 @@ const CATEGORIES: Category[] = [
   { key: 'deportivo', label: 'Deportes' },
   { key: 'cultural', label: 'Cultura' },
 ];
-
-const QUICK_ACTIONS = [
-  { Icon: Map, label: 'Mapa', route: '/map', color: T.success },
-  { Icon: Bus, label: 'Polibus', route: '/polibus', color: T.highlight },
-  { Icon: Calendar, label: 'Eventos', route: '/events', color: T.info },
-  { Icon: User, label: 'Perfil', route: '/profile', color: T.accent },
-] as const;
-
-function QuickActionCard({ item }: { item: (typeof QUICK_ACTIONS)[number] }) {
-  const scale = useSharedValue(1);
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-  return (
-    <Link href={item.route as any} asChild>
-      <Pressable
-        onPressIn={() => { scale.value = withSpring(0.94, { damping: 20, stiffness: 400 }); }}
-        onPressOut={() => {
-          scale.value = withSpring(1, { damping: 18, stiffness: 300 });
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }}
-      >
-        <Animated.View style={[styles.quickCard, animStyle]}>
-          <View style={[styles.quickIcon, { backgroundColor: item.color + '18' }]}>
-            <item.Icon size={22} color={item.color} strokeWidth={2} />
-          </View>
-          <Text style={styles.quickLabel}>{item.label}</Text>
-        </Animated.View>
-      </Pressable>
-    </Link>
-  );
-}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -126,12 +103,6 @@ export default function HomeScreen() {
           </Text>
           <Text style={styles.appName}>ESFOTgo</Text>
           <Text style={styles.tagline}>Tu guia inteligente para navegar el campus</Text>
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(100)} style={styles.quickActions}>
-          {QUICK_ACTIONS.map((item) => (
-            <QuickActionCard key={item.route} item={item} />
-          ))}
         </Animated.View>
 
         <Animated.View entering={FadeInDown.delay(140)} style={styles.categoriesWrap}>
@@ -281,34 +252,6 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: 'rgba(255,255,255,0.72)',
     marginTop: 4,
-  },
-
-  quickActions: {
-    flexDirection: 'row',
-    paddingHorizontal: Sizes.paddingMd,
-    gap: 10,
-    marginBottom: Sizes.gapLg,
-  },
-  quickCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: Sizes.radiusLg,
-    padding: 16,
-    alignItems: 'center',
-    gap: 10,
-    ...Shadows.md,
-  },
-  quickIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  quickLabel: {
-    ...Typography.caption,
-    color: T.textSecondary,
-    fontWeight: '600',
   },
 
   categoriesWrap: { marginBottom: Sizes.gapMd },
