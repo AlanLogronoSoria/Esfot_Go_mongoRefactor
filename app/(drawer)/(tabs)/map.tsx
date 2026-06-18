@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { MapRegion, MapMarkerData, ClusterPoint, GeoCoordinate } from '@/features/map/domain/coordinates';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
+import type { RestrictedZone } from '@/features/admin/domain/poi.entity';
 import { useMapClusters } from '@/features/map/application/map.hooks';
 import { useLocation } from '@/hooks/useLocation';
 import { GpsPermissionPrompt } from '@/features/auth/presentation/gps-permission-prompt';
@@ -23,9 +24,13 @@ import { MapControls } from '@/features/map/presentation/map-controls';
 import { CategoryFilter } from '@/features/map/presentation/category-filter';
 import { MapSearchBar } from '@/features/map/presentation/map-search-bar';
 import { LocationDetailSheet } from '@/features/map/presentation/location-detail-sheet';
+import { LocationInfoModal } from '@/features/map/presentation/location-info-modal';
+import { RestrictedZonesLayer } from '@/features/map/presentation/restricted-zones-layer';
+import { RestrictedZoneInfoModal } from '@/features/map/presentation/restricted-zone-info-modal';
 import { RouteInfoCard } from '@/features/map/presentation/route-info-card';
 import { BusMarker } from '@/features/polibus/presentation/bus-marker';
 import { useBusRoutes, useBusLocations } from '@/features/polibus/application/bus.hooks';
+import { useAdminZones } from '@/features/admin/application/poi.hooks';
 import { calculateOptimalRoute } from '@/features/map/services/route-calculator';
 import { useBatteryOptimizer } from '@/features/map/services/battery-optimizer';
 import { useCampusGraph, useOptimalRoute } from '@/features/graph/application/graph.hooks';
@@ -60,6 +65,8 @@ export default function MapScreen() {
   const [region, setRegion] = useState<MapRegion>(EPN_REGION);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<CampusLocation | null>(null);
+  const [infoLocation, setInfoLocation] = useState<CampusLocation | null>(null);
+  const [selectedZone, setSelectedZone] = useState<RestrictedZone | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [route, setRoute] = useState<RouteCalculation | null>(null);
   const [graphRoute, setGraphRoute] = useState<GraphRouteResult | null>(null);
@@ -134,6 +141,8 @@ export default function MapScreen() {
   const { data: busRoutes } = useBusRoutes();
   const activeRoute = busRoutes?.find((r) => r.isActive);
   const { data: busLocations } = useBusLocations(activeRoute?.id ?? '');
+
+  const { zones } = useAdminZones();
 
   const handleRegionChange = useCallback((r: MapRegion) => setRegion(r), []);
   const handleMarkerPress = useCallback((marker: MapMarkerData) => {
@@ -243,6 +252,9 @@ export default function MapScreen() {
             <UserMarker location={userLocation} />
           </>
         )}
+
+        <RestrictedZonesLayer zones={zones} onZonePress={setSelectedZone} />
+
         {(route || graphRoute || osrmRoute) && (route?.waypoints.length ?? graphRoute?.waypoints.length ?? osrmRoute?.waypoints.length ?? 0) > 1 && (
           <Polyline
             coordinates={graphRoute ? graphRoute.waypoints : osrmRoute ? osrmRoute.waypoints : route!.waypoints}
@@ -376,7 +388,22 @@ export default function MapScreen() {
         location={selectedLocation}
         onClose={() => { setSelectedLocation(null); setRoute(null); setGraphRoute(null); setOsrmRoute(null); }}
         onNavigate={() => {}}
+        onMoreInfo={(loc) => setInfoLocation(loc)}
       />
+
+      {infoLocation && (
+        <LocationInfoModal
+          location={infoLocation}
+          onClose={() => setInfoLocation(null)}
+        />
+      )}
+
+      {selectedZone && (
+        <RestrictedZoneInfoModal
+          zone={selectedZone}
+          onClose={() => setSelectedZone(null)}
+        />
+      )}
     </View>
   );
 }

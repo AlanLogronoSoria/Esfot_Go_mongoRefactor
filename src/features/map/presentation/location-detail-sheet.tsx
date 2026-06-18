@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Animated, { FadeIn, SlideInUp, FadeOut } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
-import { Navigation } from 'lucide-react-native';
+import { Navigation, Info } from 'lucide-react-native';
 import { getCategoryConfig } from '@/features/map/application/map.hooks';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
@@ -11,9 +11,10 @@ interface Props {
   location: CampusLocation | null;
   onClose: () => void;
   onNavigate?: (l: CampusLocation) => void;
+  onMoreInfo?: (l: CampusLocation) => void;
 }
 
-export function LocationDetailSheet({ location, onClose, onNavigate }: Props) {
+export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo }: Props) {
   if (!location) return null;
   const config = getCategoryConfig(location.category);
 
@@ -61,6 +62,19 @@ export function LocationDetailSheet({ location, onClose, onNavigate }: Props) {
           >
             <Navigation size={18} strokeWidth={2} color="#FFFFFF" />
             <Text style={s.navT}>Como llegar</Text>
+          </Pressable>
+        )}
+
+        {onMoreInfo && (
+          <Pressable
+            style={s.infoBtn}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              onMoreInfo(location);
+            }}
+          >
+            <Info size={18} strokeWidth={2} color={T.primary} />
+            <Text style={s.infoT}>Mas Informacion</Text>
           </Pressable>
         )}
       </Animated.View>
@@ -116,4 +130,11 @@ const s = StyleSheet.create({
     padding: 16, ...Shadows.md, shadowColor: T.primary, shadowOpacity: 0.3,
   },
   navT: { ...Typography.button, color: '#FFFFFF', fontSize: 15 },
+  infoBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 10, backgroundColor: T.surface, borderRadius: 16,
+    padding: 16, borderWidth: 1.5, borderColor: T.primary + '40',
+    ...Shadows.sm,
+  },
+  infoT: { ...Typography.button, color: T.primary, fontSize: 15 },
 });

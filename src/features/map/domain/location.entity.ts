@@ -1,3 +1,5 @@
+export type LocationMediaType = 'image' | '360' | undefined;
+
 export interface CampusLocation {
   id: string;
   name: string;
@@ -6,5 +8,8 @@ export interface CampusLocation {
   latitude: number;
   longitude: number;
   imageUrl: string | null;
+  image?: string;
+  image360?: string;
+  mediaType?: LocationMediaType;
   createdAt: string;
 }
