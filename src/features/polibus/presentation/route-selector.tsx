@@ -94,8 +94,8 @@ export const RouteSelector = memo(function RouteSelector({
     <View style={s.container}>
       <Text style={s.title}>Rutas del Polibus</Text>
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
         contentContainerStyle={s.scroll}
       >
         {routes.map((route) => (
@@ -115,12 +115,11 @@ export const RouteSelector = memo(function RouteSelector({
 const s = StyleSheet.create({
   container: { gap: 10 },
   title: { fontSize: 15, fontWeight: '700', color: T.textPrimary },
-  scroll: { gap: 12, paddingRight: 8 },
+  scroll: { gap: 10, paddingBottom: 4 },
   card: {
     backgroundColor: T.surface,
     borderRadius: Sizes.radiusLg,
     padding: 16,
-    width: 178,
     gap: 10,
     borderWidth: 2,
     borderColor: T.cardBorder,

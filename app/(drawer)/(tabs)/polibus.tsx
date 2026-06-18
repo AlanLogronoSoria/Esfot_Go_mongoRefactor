@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
+import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import type { MapRegion } from '@/features/map/domain/coordinates';
 import type { BusRoute, BusStop } from '@/features/polibus/domain/route.entity';
 import {
@@ -27,6 +28,7 @@ const EPN_REGION: MapRegion = {
 
 export default function PolibusScreen() {
   const mapRef = useRef<MapView>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const { data: routes, isLoading: routesLoading, error: routesError } = useBusRoutes();
   const battery = useBatteryOptimizer();
 
@@ -39,6 +41,8 @@ export default function PolibusScreen() {
   if (stopsError) console.log('[PolibusScreen] Error cargando paradas:', (stopsError as Error)?.message ?? stopsError);
   if (busLocationsError) console.log('[PolibusScreen] Error cargando buses:', (busLocationsError as Error)?.message ?? busLocationsError);
   const polyline = useOptimizedRoutePolyline(stops);
+
+  const snapPoints = useMemo(() => ['12%', '40%', '80%'], []);
 
   const handleSelectRoute = useCallback((route: BusRoute) => {
     setSelectedRoute((prev) => (prev?.id === route.id ? null : route));
@@ -102,46 +106,58 @@ export default function PolibusScreen() {
         ))}
       </MapView>
 
-      <View style={styles.panel}>
-        {routesLoading && <ActivityIndicator size="small" color={T.primary} />}
+      <BottomSheet
+        ref={sheetRef}
+        snapPoints={snapPoints}
+        index={1}
+        enablePanDownToClose={false}
+        handleIndicatorStyle={{ backgroundColor: T.textMuted }}
+        backgroundStyle={{ backgroundColor: T.surfaceGlass }}
+      >
+        <BottomSheetScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          {routesLoading && <ActivityIndicator size="small" color={T.primary} />}
 
-        <RouteSelector
-          routes={routes ?? []}
-          selectedRouteId={selectedRoute?.id ?? null}
-          stops={stops}
-          onSelectRoute={handleSelectRoute}
-        />
+          <RouteSelector
+            routes={routes ?? []}
+            selectedRouteId={selectedRoute?.id ?? null}
+            stops={stops}
+            onSelectRoute={handleSelectRoute}
+          />
 
-        {selectedRoute && stops && stops.length > 0 && (
-          <View style={styles.detailSection}>
-            <View style={styles.detailStats}>
-              <StatItem value={stops.length} label="Paradas" />
-              <View style={styles.detailDivider} />
-              <StatItem value={busLocations?.length ?? 0} label="Buses" />
-              <View style={styles.detailDivider} />
-              <StatItem
-                value={
-                  polyline?.distance
-                    ? `${(polyline.distance / 1000).toFixed(1)} km`
-                    : '--'
-                }
-                label="Distancia"
+          {selectedRoute && stops && stops.length > 0 && (
+            <View style={styles.detailSection}>
+              <View style={styles.detailStats}>
+                <StatItem value={stops.length} label="Paradas" />
+                <View style={styles.detailDivider} />
+                <StatItem value={busLocations?.length ?? 0} label="Buses" />
+                <View style={styles.detailDivider} />
+                <StatItem
+                  value={
+                    polyline?.distance
+                      ? `${(polyline.distance / 1000).toFixed(1)} km`
+                      : '--'
+                  }
+                  label="Distancia"
+                />
+                {battery.isLowPower && (
+                  <View style={styles.batteryTip}>
+                    <Text style={styles.batteryTipText}>Ahorro</Text>
+                  </View>
+                )}
+              </View>
+
+              <StopList
+                stops={stops}
+                onStopPress={handleStopPress}
+                routeColor={selectedRoute.color}
               />
-              {battery.isLowPower && (
-                <View style={styles.batteryTip}>
-                  <Text style={styles.batteryTipText}>Ahorro</Text>
-                </View>
-              )}
             </View>
-
-            <StopList
-              stops={stops}
-              onStopPress={handleStopPress}
-              routeColor={selectedRoute.color}
-            />
-          </View>
-        )}
-      </View>
+          )}
+        </BottomSheetScrollView>
+      </BottomSheet>
     </View>
   );
 }
@@ -164,18 +180,11 @@ const statStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: { flex: 1 },
   map: { flex: 1 },
-  panel: {
-    backgroundColor: T.surfaceGlass,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  scrollContent: {
     padding: Sizes.paddingLg,
-    paddingTop: 14,
+    paddingTop: 4,
     gap: 16,
-    borderWidth: 1,
-    borderColor: T.cardBorder,
-    borderBottomWidth: 0,
-    ...Shadows.xl,
-    maxHeight: '52%',
+    paddingBottom: 24,
   },
   detailSection: { gap: 14, marginTop: 0 },
   detailStats: {
