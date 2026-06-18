@@ -16,36 +16,52 @@ interface GraphNodeDto {
   label?: string; nombre?: string;
   latitude?: number; latitud?: number;
   longitude?: number; longitud?: number;
+  tipo?: string;
+  piso?: number;
+  edificioId?: string; edificio?: string;
+  referenciaId?: string;
+  referenciaModelo?: string;
+  coord?: { lat: number; lng: number };
+  coordenadas?: { lat: number; lng: number };
 }
 
 interface GraphEdgeDto {
   _id?: string; id?: string;
-  from_node_id?: string; fromNodeId?: string;
-  to_node_id?: string; toNodeId?: string;
-  weight?: number; peso?: number;
+  from_node_id?: string; fromNodeId?: string; nodoOrigen?: string;
+  to_node_id?: string; toNodeId?: string; nodoDestino?: string;
+  weight?: number; peso?: number; distancia?: number;
   blocked?: boolean; bloqueado?: boolean;
   bidirectional?: boolean; bidireccional?: boolean;
+  unidireccional?: boolean;
 }
 
 // ─── Mappers ────────────────────────────────────────────────
 
 function mapDtoToNode(dto: GraphNodeDto): GraphNode {
+  const coords = dto.coordenadas ?? dto.coord;
   return {
     id: dto._id ?? dto.id ?? '',
     label: dto.label ?? dto.nombre ?? '',
-    latitude: dto.latitude ?? dto.latitud ?? 0,
-    longitude: dto.longitude ?? dto.longitud ?? 0,
+    latitude: coords?.lat ?? dto.latitude ?? dto.latitud ?? 0,
+    longitude: coords?.lng ?? dto.longitude ?? dto.longitud ?? 0,
+    type: (dto.tipo as GraphNode['type']) ?? 'punto_interes',
+    floor: dto.piso ?? 1,
+    buildingId: dto.edificioId ?? dto.edificio ?? '',
+    referenceId: dto.referenciaId ?? null,
+    referenceModel: (dto.referenciaModelo as GraphNode['referenceModel']) ?? null,
   };
 }
 
 function mapDtoToEdge(dto: GraphEdgeDto): GraphEdge {
+  const blocked = dto.blocked ?? dto.bloqueado;
+  const unidireccional = dto.unidireccional;
   return {
     id: dto._id ?? dto.id ?? '',
-    fromNodeId: dto.from_node_id ?? dto.fromNodeId ?? '',
-    toNodeId: dto.to_node_id ?? dto.toNodeId ?? '',
-    weight: dto.weight ?? dto.peso ?? 1,
-    blocked: dto.blocked ?? dto.bloqueado ?? false,
-    bidirectional: dto.bidirectional ?? dto.bidireccional ?? true,
+    fromNodeId: dto.from_node_id ?? dto.fromNodeId ?? dto.nodoOrigen ?? '',
+    toNodeId: dto.to_node_id ?? dto.toNodeId ?? dto.nodoDestino ?? '',
+    weight: dto.weight ?? dto.peso ?? dto.distancia ?? 1,
+    blocked: blocked ?? false,
+    bidirectional: dto.bidirectional ?? dto.bidireccional ?? !(unidireccional ?? false),
   };
 }
 
@@ -58,53 +74,59 @@ export class ExpressGraphRepository implements IGraphRepository {
 
   async getGraph(): Promise<CampusGraph> {
     if (isDevMode()) return MockData.getBusRoutes().then(() => ({ nodes: [], edges: [] }));
-    const [nodesRes, edgesRes] = await Promise.all([
-      httpClient.get<GraphNodeDto[]>('/mapa/grafo/nodos'),
-      httpClient.get<GraphEdgeDto[]>('/mapa/grafo/aristas'),
-    ]);
-    if (nodesRes.error || edgesRes.error) {
-      console.log('[ExpressGraphRepo] Error cargando grafo:', nodesRes.error ?? edgesRes.error);
+    const { data, error } = await httpClient.get<{ nodos?: GraphNodeDto[]; aristas?: GraphEdgeDto[] }>('/mapa/grafo');
+    if (error || !data) {
+      console.log('[ExpressGraphRepo] Error cargando grafo:', error);
       return { nodes: [], edges: [] };
     }
     const graph = {
-      nodes: (nodesRes.data ?? []).map(mapDtoToNode),
-      edges: (edgesRes.data ?? []).map(mapDtoToEdge),
+      nodes: (data.nodos ?? []).map(mapDtoToNode),
+      edges: (data.aristas ?? []).map(mapDtoToEdge),
     };
     logGraphStats(graph);
     return graph;
   }
 
   async upsertNode(node: Omit<GraphNode, 'id'> & { id?: string }): Promise<GraphNode> {
-    if (isDevMode()) return { ...node, id: node.id ?? `mock-${Date.now()}` };
+    if (isDevMode()) return { ...node, id: node.id ?? `mock-${Date.now()}`, type: node.type ?? 'punto_interes', floor: node.floor ?? 1, buildingId: node.buildingId ?? '', referenceId: node.referenceId ?? null, referenceModel: node.referenceModel ?? null };
     const t = await this.token();
-    console.log('[ExpressGraphRepo] Upsert nodo:', node.label, node.id ? `(id: ${node.id})` : '(nuevo)');
-    const payload: Record<string, unknown> = { label: node.label, latitude: node.latitude, longitude: node.longitude };
+    const payload: Record<string, unknown> = {
+      nombre: node.label.trim(),
+      tipo: node.type ?? 'punto_interes',
+      coordenadas: { lat: Number(node.latitude), lng: Number(node.longitude) },
+      piso: Number(node.floor) || 1,
+      edificioId: node.buildingId || undefined,
+      referenciaId: node.referenceId || null,
+      referenciaModelo: node.referenceModel || null,
+    };
     if (node.id) payload._id = node.id;
-    const { data, error } = await httpClient.post<GraphNodeDto>('/admin/mapa/grafo/nodos', payload, t);
+    const { data, error } = await httpClient.post<{ msg?: string; nodo?: GraphNodeDto }>('/admin/mapa/nodo', payload, t);
     if (error || !data) {
       console.log('[ExpressGraphRepo] Error upsert nodo:', error);
       throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
     }
-    return mapDtoToNode(data);
+    const nodoData = data.nodo ?? (data as unknown as GraphNodeDto);
+    return mapDtoToNode(nodoData);
   }
 
   async deleteNode(id: string): Promise<void> {
     if (isDevMode()) return;
     const t = await this.token();
-    const { error } = await httpClient.delete(`/admin/mapa/grafo/nodos/${id}`, t);
+    const { error } = await httpClient.delete(`/admin/mapa/nodo/${id}`, t);
     if (error) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
   }
 
   async upsertEdge(edge: Omit<GraphEdge, 'id'> & { id?: string }): Promise<GraphEdge> {
     if (isDevMode()) return { ...edge, id: edge.id ?? `mock-${Date.now()}` };
     const t = await this.token();
-    console.log('[ExpressGraphRepo] Upsert arista:', edge.fromNodeId, '→', edge.toNodeId, `(${edge.weight}m)`);
     const payload: Record<string, unknown> = {
-      from_node_id: edge.fromNodeId, to_node_id: edge.toNodeId,
-      weight: edge.weight, blocked: edge.blocked, bidirectional: edge.bidirectional,
+      nodoOrigen: edge.fromNodeId,
+      nodoDestino: edge.toNodeId,
+      distancia: edge.weight,
+      unidireccional: !edge.bidirectional,
     };
     if (edge.id) payload._id = edge.id;
-    const { data, error } = await httpClient.post<GraphEdgeDto>('/admin/mapa/grafo/aristas', payload, t);
+    const { data, error } = await httpClient.post<GraphEdgeDto>('/admin/mapa/conexion', payload, t);
     if (error || !data) {
       console.log('[ExpressGraphRepo] Error upsert arista:', error);
       throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
@@ -116,10 +138,10 @@ export class ExpressGraphRepository implements IGraphRepository {
     if (isDevMode()) return { id, fromNodeId: '', toNodeId: '', weight: 1, blocked: false, bidirectional: true, ...patch };
     const t = await this.token();
     const payload: Record<string, unknown> = {};
-    if (patch.weight !== undefined) payload.weight = patch.weight;
-    if (patch.blocked !== undefined) payload.blocked = patch.blocked;
-    if (patch.bidirectional !== undefined) payload.bidirectional = patch.bidirectional;
-    const { data, error } = await httpClient.put<GraphEdgeDto>(`/admin/mapa/grafo/aristas/${id}`, payload, t);
+    if (patch.weight !== undefined) payload.distancia = patch.weight;
+    if (patch.blocked !== undefined) payload.bloqueado = patch.blocked;
+    if (patch.bidirectional !== undefined) payload.unidireccional = !patch.bidirectional;
+    const { data, error } = await httpClient.put<GraphEdgeDto>(`/admin/mapa/conexion/${id}`, payload, t);
     if (error || !data) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
     return mapDtoToEdge(data);
   }
@@ -127,7 +149,7 @@ export class ExpressGraphRepository implements IGraphRepository {
   async deleteEdge(id: string): Promise<void> {
     if (isDevMode()) return;
     const t = await this.token();
-    const { error } = await httpClient.delete(`/admin/mapa/grafo/aristas/${id}`, t);
+    const { error } = await httpClient.delete(`/admin/mapa/conexion/${id}`, t);
     if (error) throw new AppError(error ?? 'Unknown API error', 'API_ERROR');
   }
 }

@@ -226,6 +226,7 @@ export function ChatScreen() {
         <PrivateChatRoom
           conversationId={privateRoom.conversationId}
           userName={privateRoom.userName}
+          onBack={() => setPrivateRoom(null)}
         />
       )}
     </KeyboardAvoidingView>

@@ -27,6 +27,9 @@ export function GraphAdmin() {
   const [nLabel, setNLabel] = useState('');
   const [nLat, setNLat] = useState<number | null>(null);
   const [nLng, setNLng] = useState<number | null>(null);
+  const [nType, setNType] = useState<string>('punto_interes');
+  const [nFloor, setNFloor] = useState('1');
+  const [nBuildingId, setNBuildingId] = useState('');
   const [pickingCoords, setPickingCoords] = useState(false);
 
   const [edgeOriginNode, setEdgeOriginNode] = useState<GraphNode | null>(null);
@@ -36,6 +39,7 @@ export function GraphAdmin() {
   const resetNodeForm = useCallback(() => {
     setShowNodeForm(false); setEditingNode(null); setNLabel('');
     setNLat(null); setNLng(null); setPickingCoords(false);
+    setNType('punto_interes'); setNFloor('1'); setNBuildingId('');
   }, []);
 
   const resetEdgeForm = () => { setShowEdgeForm(false); setEditingEdge(null); setEdgeOriginNode(null); setEdgeDestNode(null); setEdgeSelectMode(null); };
@@ -63,11 +67,25 @@ export function GraphAdmin() {
       Alert.alert('Longitud inválida', 'La longitud debe estar entre -180 y 180 y no puede ser 0.');
       return;
     }
+    if (!nBuildingId.trim()) {
+      Alert.alert('Falta edificio', 'Ingresa el ID del edificio al que pertenece este nodo.');
+      return;
+    }
     upsertNode.mutateAsync(
-      { id: editingNode?.id, label: nLabel.trim(), latitude: nLat, longitude: nLng },
+      {
+        id: editingNode?.id,
+        label: nLabel.trim(),
+        latitude: nLat,
+        longitude: nLng,
+        type: (nType as GraphNode['type']) ?? 'punto_interes',
+        floor: Number(nFloor) || 1,
+        buildingId: nBuildingId.trim(),
+        referenceId: editingNode?.referenceId ?? null,
+        referenceModel: editingNode?.referenceModel ?? null,
+      },
       { onSuccess: resetNodeForm },
     );
-  }, [nLabel, nLat, nLng, editingNode, upsertNode, resetNodeForm]);
+  }, [nLabel, nLat, nLng, nType, nFloor, nBuildingId, editingNode, upsertNode, resetNodeForm]);
 
   const autoWeight = useMemo(() => {
     if (!edgeOriginNode || !edgeDestNode) return null;
@@ -97,6 +115,9 @@ export function GraphAdmin() {
   const startEditNode = (n: GraphNode) => {
     setEditingNode(n); setShowNodeForm(true); setNLabel(n.label);
     setNLat(n.latitude); setNLng(n.longitude); setPickingCoords(false);
+    setNType(n.type ?? 'punto_interes');
+    setNFloor(String(n.floor ?? 1));
+    setNBuildingId(n.buildingId ?? '');
   };
 
   const startEditEdge = (e: GraphEdge) => {
@@ -253,6 +274,32 @@ export function GraphAdmin() {
               </View>
             </View>
           )}
+
+          <View style={s.field}>
+            <Text style={s.label}>Tipo de nodo</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.typeChips}>
+              {['entrada', 'hall', 'pasillo', 'escalera', 'aula', 'oficina', 'cafeteria', 'punto_interes'].map((t) => (
+                <Pressable
+                  key={t}
+                  style={[s.typeChip, nType === t && { backgroundColor: T.primary, borderColor: T.primary }]}
+                  onPress={() => setNType(t)}
+                >
+                  <Text style={[s.typeChipText, nType === t && { color: '#FFFFFF' }]}>{t}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={s.row}>
+            <View style={[s.field, s.half]}>
+              <Text style={s.label}>Piso</Text>
+              <TextInput style={s.input} placeholder="1" placeholderTextColor={T.inputPlaceholder} keyboardType="numeric" value={nFloor} onChangeText={setNFloor} />
+            </View>
+            <View style={[s.field, s.half]}>
+              <Text style={s.label}>ID Edificio *</Text>
+              <TextInput style={s.input} placeholder="ObjectId del edificio" placeholderTextColor={T.inputPlaceholder} value={nBuildingId} onChangeText={setNBuildingId} />
+            </View>
+          </View>
 
           <View style={s.formActions}>
             <Pressable style={[s.saveBtn, !hasCoords && { opacity: 0.5 }]} onPress={handleNodeSave} disabled={!hasCoords}>
@@ -513,4 +560,12 @@ const s = StyleSheet.create({
   },
   edgeWeightLabel: { fontSize: 11, fontWeight: '600', color: T.textTertiary, textTransform: 'uppercase' },
   edgeWeightValue: { fontSize: 16, fontWeight: '800', color: T.primary },
+
+  typeChips: { gap: 6 },
+  typeChip: {
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: Sizes.radiusFull,
+    backgroundColor: T.surface, borderWidth: 1, borderColor: T.cardBorder,
+  },
+  typeChipText: { fontSize: 12, fontWeight: '600', color: T.textSecondary },
 });

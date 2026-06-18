@@ -24,8 +24,8 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo,
   const toggleFavorite = useFavoritesStore((s) => s.toggleLocation);
   const role = useAuthStore((s) => s.user?.role);
   const canFav = role === 'administrador' || role === 'gestor' || role === 'docente';
-
   const snapPoints = useMemo(() => ['35%', '65%', '92%'], []);
+  const config = useMemo(() => location ? getCategoryConfig(location.category) : null, [location]);
 
   useEffect(() => {
     if (location) {
@@ -55,112 +55,97 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo,
       onClearRoute?.();
     } else {
       setRouteActive(true);
-      onNavigate?.(location);
+      onNavigate?.(location!);
     }
   }, [routeActive, onNavigate, onClearRoute, location]);
-
-  if (!location) {
-    return (
-      <BottomSheet
-        ref={sheetRef}
-        snapPoints={snapPoints}
-        index={-1}
-        enablePanDownToClose
-        onChange={handleChange}
-        handleIndicatorStyle={{ backgroundColor: T.textMuted }}
-        backgroundStyle={{ backgroundColor: T.surfaceGlass }}
-        style={s.shadow}
-      >
-        <BottomSheetView style={s.empty} />
-      </BottomSheet>
-    );
-  }
-
-  const config = getCategoryConfig(location.category);
 
   return (
     <BottomSheet
       ref={sheetRef}
       snapPoints={snapPoints}
-      index={0}
+      index={location ? 0 : -1}
       enablePanDownToClose
       onChange={handleChange}
       handleIndicatorStyle={{ backgroundColor: T.textMuted }}
       backgroundStyle={{ backgroundColor: T.surfaceGlass }}
       style={s.shadow}
     >
-      <BottomSheetScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={s.header}>
-          <View style={[s.iconWrap, { backgroundColor: config.color + '18' }]}>
-            <Text style={[s.iconLetter, { color: config.color }]}>
-              {config.label.charAt(0)}
+      {location && config ? (
+        <BottomSheetScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled">
+          <View style={s.header}>
+            <View style={[s.iconWrap, { backgroundColor: config.color + '18' }]}>
+              <Text style={[s.iconLetter, { color: config.color }]}>
+                {config.label.charAt(0)}
+              </Text>
+            </View>
+            <View style={s.headerT}>
+              <Text style={s.title}>{location.name}</Text>
+              <View style={[s.badge, { backgroundColor: config.color + '18' }]}>
+                <Text style={[s.badgeT, { color: config.color }]}>{config.label}</Text>
+              </View>
+            </View>
+            {canFav && (
+              <Pressable
+                style={s.favBtn}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  toggleFavorite(location);
+                }}
+                hitSlop={8}
+              >
+                <Star
+                  size={22}
+                  strokeWidth={isFav ? 0 : 2}
+                  fill={isFav ? T.highlight : 'transparent'}
+                  color={isFav ? T.highlight : T.textTertiary}
+                />
+              </Pressable>
+            )}
+          </View>
+
+          {location.description && (
+            <Text style={s.desc}>{location.description}</Text>
+          )}
+
+          <View style={s.coords}>
+            <Text style={s.coordT}>
+              {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
             </Text>
           </View>
-          <View style={s.headerT}>
-            <Text style={s.title}>{location.name}</Text>
-            <View style={[s.badge, { backgroundColor: config.color + '18' }]}>
-              <Text style={[s.badgeT, { color: config.color }]}>{config.label}</Text>
-            </View>
-          </View>
-          {canFav && (
+
+          {onNavigate && (
             <Pressable
-              style={s.favBtn}
+              style={[s.navBtn, routeActive && s.navBtnActive]}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                toggleFavorite(location);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleRouteToggle();
               }}
-              hitSlop={8}
             >
-            <Star
-              size={22}
-              strokeWidth={isFav ? 0 : 2}
-              fill={isFav ? T.highlight : 'transparent'}
-              color={isFav ? T.highlight : T.textTertiary}
-            />
-          </Pressable>
+              {routeActive ? (
+                <XCircle size={18} strokeWidth={2} color="#FFFFFF" />
+              ) : (
+                <Navigation size={18} strokeWidth={2} color="#FFFFFF" />
+              )}
+              <Text style={s.navT}>{routeActive ? 'Dejar Ruta' : 'Como llegar'}</Text>
+            </Pressable>
           )}
-        </View>
 
-        {location.description && (
-          <Text style={s.desc}>{location.description}</Text>
-        )}
-
-        <View style={s.coords}>
-          <Text style={s.coordT}>
-            {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
-          </Text>
-        </View>
-
-        {onNavigate && (
-          <Pressable
-            style={[s.navBtn, routeActive && s.navBtnActive]}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              handleRouteToggle();
-            }}
-          >
-            {routeActive ? (
-              <XCircle size={18} strokeWidth={2} color="#FFFFFF" />
-            ) : (
-              <Navigation size={18} strokeWidth={2} color="#FFFFFF" />
-            )}
-            <Text style={s.navT}>{routeActive ? 'Dejar Ruta' : 'Como llegar'}</Text>
-          </Pressable>
-        )}
-
-        {onMoreInfo && (
-          <Pressable
-            style={s.infoBtn}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              onMoreInfo(location);
-            }}
-          >
-            <Info size={18} strokeWidth={2} color={T.primary} />
-            <Text style={s.infoT}>Mas Informacion</Text>
-          </Pressable>
-        )}
-      </BottomSheetScrollView>
+          {onMoreInfo && (
+            <Pressable
+              style={s.infoBtn}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                onMoreInfo(location);
+              }}
+            >
+              <Info size={18} strokeWidth={2} color={T.primary} />
+              <Text style={s.infoT}>Mas Informacion</Text>
+            </Pressable>
+          )}
+        </BottomSheetScrollView>
+      ) : (
+        <BottomSheetView style={s.empty} />
+      )}
     </BottomSheet>
   );
 }

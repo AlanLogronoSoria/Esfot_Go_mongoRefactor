@@ -23,6 +23,19 @@ export function usePrivateChat(conversationId: string | null) {
   useEffect(() => {
     if (!conversationId) return;
 
+    let cancelled = false;
+
+    PrivateChatRepository.getMessages(conversationId)
+      .then((history) => {
+        if (!cancelled && history.length > 0) {
+          console.log(`[usePrivateChat] Historial cargado vía REST: ${history.length} mensajes`);
+          setMessages(history);
+        }
+      })
+      .catch((err) => {
+        console.log('[usePrivateChat] Error cargando historial vía REST:', (err as Error)?.message);
+      });
+
     const socket: Socket = io(getSocketUrl(), {
       autoConnect: true,
       transports: ['websocket'],
@@ -38,7 +51,10 @@ export function usePrivateChat(conversationId: string | null) {
     socket.on('disconnect', () => setIsConnected(false));
 
     socket.on('private-message', (msg: PrivateMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (prev.some((m) => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
       if (msg.senderName !== username) {
         NotificationService.sendLocal(
           'Nuevo mensaje',
@@ -49,10 +65,11 @@ export function usePrivateChat(conversationId: string | null) {
     });
 
     socket.on('previous-messages', (msgs: PrivateMessage[]) => {
-      setMessages(msgs);
+      if (!cancelled) setMessages(msgs);
     });
 
     return () => {
+      cancelled = true;
       socket.emit('leave-room', { conversationId });
       socket.disconnect();
     };
@@ -62,24 +79,41 @@ export function usePrivateChat(conversationId: string | null) {
     async (text: string) => {
       if (!text.trim() || !conversationId || !user) return;
 
-      const payload = {
+      const timestamp = new Date().toISOString();
+      const optimisticMsg: PrivateMessage = {
+        _id: `temp-${Date.now()}`,
         conversationId,
         senderId: user.id,
         senderName: username,
         text: text.trim(),
+        timestamp,
       };
+
+      setMessages((prev) => [...prev, optimisticMsg]);
 
       PrivateChatRepository.sendMessage(
         conversationId,
         user.id,
         username,
         text.trim(),
-      ).catch((err) => {
-        console.log('[usePrivateChat] Error guardando mensaje vía REST:', (err as Error)?.message);
-      });
+      )
+        .then((saved) => {
+          setMessages((prev) => {
+            if (prev.some((m) => m._id === saved._id)) return prev;
+            return prev.map((m) => (m._id === optimisticMsg._id ? saved : m));
+          });
+        })
+        .catch((err) => {
+          console.log('[usePrivateChat] Error guardando mensaje vía REST:', (err as Error)?.message);
+        });
 
       if (socketRef.current?.connected) {
-        socketRef.current.emit('private-message', payload);
+        socketRef.current.emit('private-message', {
+          conversationId,
+          senderId: user.id,
+          senderName: username,
+          text: text.trim(),
+        });
       }
     },
     [conversationId, user, username],

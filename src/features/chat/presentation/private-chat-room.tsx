@@ -13,14 +13,23 @@ import { LightTheme as T, Typography, Sizes, Shadows } from '@/constants/design-
 interface PrivateChatRoomProps {
   conversationId: string;
   userName: string;
+  onBack?: () => void;
 }
 
-export function PrivateChatRoom({ conversationId, userName }: PrivateChatRoomProps) {
+export function PrivateChatRoom({ conversationId, userName, onBack }: PrivateChatRoomProps) {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const { messages, isConnected, sendMessage } = usePrivateChat(conversationId);
   const [text, setText] = useState('');
   const flatListRef = useRef<FlatList<PrivateMessage>>(null);
+
+  const handleBack = useCallback(() => {
+    if (onBack) {
+      onBack();
+    } else {
+      router.back();
+    }
+  }, [onBack, router]);
 
   const handleSend = useCallback(() => {
     if (!text.trim()) return;
@@ -35,7 +44,7 @@ export function PrivateChatRoom({ conversationId, userName }: PrivateChatRoomPro
       keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+        <Pressable onPress={handleBack} style={styles.backBtn}>
           <ArrowLeft size={22} strokeWidth={2} color={T.primary} />
         </Pressable>
         <View style={styles.headerAvatar}>
