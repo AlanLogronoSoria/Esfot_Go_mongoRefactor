@@ -28,18 +28,30 @@ const TABS: { key: FavTab; label: string; Icon: React.ComponentType<any> }[] = [
 ];
 
 function favoriteToBuilding(f: Favorite): Building {
+  const data = f.itemData as Record<string, unknown> ?? {};
   return {
     id: f.itemId,
     name: f.itemName,
-    ...f.itemData as Omit<Building, 'id' | 'name'>,
+    category: (data.category as Building['category']) ?? 'otro',
+    code: data.code as string | undefined,
+    description: data.description as string | undefined,
+    floor: data.floor as number | undefined,
+    capacity: data.capacity as number | undefined,
+    icon: data.icon as string | undefined,
   };
 }
 
 function favoriteToRoute(f: Favorite): Route {
+  const data = f.itemData as Record<string, unknown> ?? {};
   return {
     id: f.itemId,
     name: f.itemName,
-    ...f.itemData as Omit<Route, 'id' | 'name'>,
+    origin: (data.origin as string) ?? '',
+    destination: (data.destination as string) ?? '',
+    distanceMeters: data.distanceMeters as number | undefined,
+    estimatedMinutes: data.estimatedMinutes as number | undefined,
+    color: (data.color as string) ?? undefined,
+    stops: data.stops as number | undefined,
   };
 }
 
@@ -146,10 +158,18 @@ export default function FavoritesScreen() {
       );
     }
 
+    const normalizeCategory = (cat: string): Building['category'] => {
+      if (cat === 'edificios') return 'edificio';
+      if (cat === 'aulas') return 'aula';
+      if (cat === 'laboratorios') return 'laboratorio';
+      if (cat === 'oficinas') return 'oficina';
+      return 'otro';
+    };
+
     const localToBuilding = (loc: typeof localLocations[number]): Building => ({
       id: loc.id,
       name: loc.name,
-      category: loc.category,
+      category: normalizeCategory(loc.category),
       description: loc.description ?? '',
       code: '',
     });

@@ -42,7 +42,7 @@ export function BuildingCard({
   onFavoritePress,
   animationDelay = 0,
 }: BuildingCardProps) {
-  const cfg = CATEGORY_CONFIG[building.category];
+  const cfg = CATEGORY_CONFIG[building.category] ?? CATEGORY_CONFIG.otro;
 
   return (
     <Animated.View entering={FadeInDown.delay(animationDelay).duration(400)}>
