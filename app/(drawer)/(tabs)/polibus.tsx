@@ -14,6 +14,8 @@ import { BusMarker, StopMarker } from '@/features/map/presentation/markers';
 import { MemoPolyline } from '@/features/polibus/presentation/memo-polyline';
 import { StopList } from '@/features/polibus/presentation/stop-list';
 import { RouteSelector } from '@/features/polibus/presentation/route-selector';
+import { MapFloatingActions } from '@/features/map/presentation/map-floating-actions';
+import { useLocation } from '@/hooks/useLocation';
 import { useBatteryOptimizer } from '@/features/map/services/battery-optimizer';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
@@ -30,6 +32,7 @@ export default function PolibusScreen() {
   const mapRef = useRef<MapView>(null);
   const sheetRef = useRef<BottomSheet>(null);
   const { data: routes, isLoading: routesLoading, error: routesError } = useBusRoutes();
+  const { location: userLocation } = useLocation();
   const battery = useBatteryOptimizer();
 
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
@@ -158,6 +161,8 @@ export default function PolibusScreen() {
           )}
         </BottomSheetScrollView>
       </BottomSheet>
+
+      <MapFloatingActions mapRef={mapRef} userLocation={userLocation} bottom={100} />
     </View>
   );
 }

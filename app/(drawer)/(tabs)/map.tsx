@@ -27,6 +27,7 @@ import { LocationDetailSheet } from '@/features/map/presentation/location-detail
 import { LocationInfoModal } from '@/features/map/presentation/location-info-modal';
 import { RestrictedZonesLayer } from '@/features/map/presentation/restricted-zones-layer';
 import { RestrictedZoneInfoModal } from '@/features/map/presentation/restricted-zone-info-modal';
+import { MapFloatingActions } from '@/features/map/presentation/map-floating-actions';
 import { RouteInfoCard } from '@/features/map/presentation/route-info-card';
 import { BusMarker } from '@/features/polibus/presentation/bus-marker';
 import { useBusRoutes, useBusLocations } from '@/features/polibus/application/bus.hooks';
@@ -506,6 +507,8 @@ export default function MapScreen() {
           onClose={() => setSelectedZone(null)}
         />
       )}
+
+      <MapFloatingActions mapRef={mapRef} userLocation={userLocation} bottom={100} />
     </View>
   );
 }

@@ -8,6 +8,7 @@ import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker, Polygon } from 'rea
 import type { MapRegion, MapMarkerData } from '@/features/map/domain/coordinates';
 import type { CampusLocation } from '@/features/map/domain/location.entity';
 import { LocationMarker } from '@/features/map/presentation/markers';
+import { MapFloatingActions } from '@/features/map/presentation/map-floating-actions';
 import { PoiForm } from '@/features/admin/presentation/poi-form';
 import { ZonePanel } from '@/features/admin/presentation/zone-panel';
 import { useAdminPois, useAdminZones } from '@/features/admin/application/poi.hooks';
@@ -165,6 +166,8 @@ export default function AdminMapScreen() {
           />
         )}
       </MapView>
+
+      <MapFloatingActions mapRef={mapRef} userLocation={null} bottom={90} />
 
       <View style={styles.toolbar}>
         <TouchableOpacity
