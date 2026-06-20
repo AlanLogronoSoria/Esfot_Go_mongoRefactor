@@ -7,6 +7,8 @@ import { useCampusGraph, useGraphNodeMutations, useGraphEdgeMutations } from '@/
 import { logGraphStats, validateEdgeNodes, validateGraphIntegrity } from '@/features/graph/domain/graph-integrity';
 import type { GraphNode, GraphEdge } from '@/features/graph/domain/graph.entity';
 import { haversineDistance } from '@/features/map/domain/coordinates';
+import { MapFloatingActions } from '@/features/map/presentation/map-floating-actions';
+import { useLocation } from '@/hooks/useLocation';
 import { LightTheme as T, Shadows, Sizes, Typography } from '@/constants/design-system';
 
 const MAP_PROVIDER = Platform.OS === 'ios' ? PROVIDER_DEFAULT : PROVIDER_GOOGLE;
@@ -17,6 +19,7 @@ export function GraphAdmin() {
   const { data: graph, isLoading } = useCampusGraph();
   const { upsertNode, deleteNode } = useGraphNodeMutations();
   const { upsertEdge, updateEdge, deleteEdge, toggleBlock } = useGraphEdgeMutations();
+  const { location: userLocation } = useLocation();
   const mapRef = useRef<MapView>(null);
 
   const [showNodeForm, setShowNodeForm] = useState(false);
@@ -224,10 +227,11 @@ export function GraphAdmin() {
               <Text style={s.pickingHint}>Toca cualquier punto del mapa para capturar las coordenadas</Text>
             )}
 
-            <MapView
-              ref={mapRef}
-              style={s.miniMap}
-              provider={MAP_PROVIDER}
+            <View style={{ position: 'relative' }}>
+              <MapView
+                ref={mapRef}
+                style={[s.miniMap, { marginBottom: 0 }]}
+                provider={MAP_PROVIDER}
               initialRegion={hasCoords && nLat !== null && nLng !== null ? { latitude: nLat, longitude: nLng, latitudeDelta: 0.005, longitudeDelta: 0.005 } : EPN_CENTER}
               onPress={handleMapPress}
               scrollEnabled={true}
@@ -253,6 +257,14 @@ export function GraphAdmin() {
                 />
               )}
             </MapView>
+
+            <MapFloatingActions
+              mapRef={mapRef}
+              userLocation={userLocation}
+              bottom={8}
+              right={8}
+            />
+            </View>
           </View>
 
           {hasCoords && (

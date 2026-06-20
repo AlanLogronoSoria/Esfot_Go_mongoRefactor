@@ -17,6 +17,7 @@ interface Props {
   userLocation?: { coords: { latitude: number; longitude: number } } | null;
   bottom?: number;
   right?: number;
+  showMyLocation?: boolean;
 }
 
 export function MapFloatingActions({
@@ -24,6 +25,7 @@ export function MapFloatingActions({
   userLocation,
   bottom = 20,
   right = 20,
+  showMyLocation = true,
 }: Props) {
   const goToMyLocation = () => {
     if (!userLocation) {
@@ -57,13 +59,15 @@ export function MapFloatingActions({
         <Text style={styles.label}>Ir a la Poli</Text>
       </Pressable>
 
-      <Pressable
-        style={styles.btn}
-        onPress={goToMyLocation}
-      >
-        <LocateFixed size={18} strokeWidth={2.2} color={T.primary} />
-        <Text style={styles.label}>Mi ubicación</Text>
-      </Pressable>
+      {showMyLocation && (
+        <Pressable
+          style={styles.btn}
+          onPress={goToMyLocation}
+        >
+          <LocateFixed size={18} strokeWidth={2.2} color={T.primary} />
+          <Text style={styles.label}>Mi ubicación</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

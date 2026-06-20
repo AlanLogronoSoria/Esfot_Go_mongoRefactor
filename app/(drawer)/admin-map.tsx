@@ -167,7 +167,7 @@ export default function AdminMapScreen() {
         )}
       </MapView>
 
-      <MapFloatingActions mapRef={mapRef} userLocation={null} bottom={90} />
+      <MapFloatingActions mapRef={mapRef} userLocation={null} bottom={90} showMyLocation={false} />
 
       <View style={styles.toolbar}>
         <TouchableOpacity

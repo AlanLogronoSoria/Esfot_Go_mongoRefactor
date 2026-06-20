@@ -1,17 +1,20 @@
 import React, { useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Alert, ScrollView, ActivityIndicator,
-  Pressable, Platform,
+  Pressable, Platform, Modal, SafeAreaView,
 } from 'react-native';
 import MapView, { PROVIDER_GOOGLE, PROVIDER_DEFAULT, Marker, Polyline } from 'react-native-maps';
 import * as Haptics from 'expo-haptics';
 import { useAdminBusRoutes } from '@/features/polibus/application/bus.hooks';
+import { useRouteStops } from '@/features/polibus/application/bus.hooks';
 import type { BusRoute, BusStop } from '@/features/polibus/domain/route.entity';
 import { useCampusGraph } from '@/features/graph/application/graph.hooks';
 import { dijkstra } from '@/features/graph/domain/dijkstra';
 import { findNearestNode, graphRouteToWaypoints, formatGraphRouteInfo } from '@/features/graph/application/graph-route.service';
 import type { GraphRouteResult } from '@/features/graph/application/graph-route.service';
 import type { GraphNode } from '@/features/graph/domain/graph.entity';
+import type { GeoCoordinate } from '@/features/map/domain/coordinates';
+import { RouteVisualEditor } from './route-visual-editor';
 import { ColorPicker } from './color-picker';
 import { LightTheme as T, Sizes, Shadows, Typography } from '@/constants/design-system';
 import { Edit2, Trash2, Bus, MapPin, Navigation, X, CircleAlert } from 'lucide-react-native';
@@ -28,6 +31,7 @@ type SelectionMode = 'start' | 'end' | null;
 export function BusRoutesAdmin() {
   const { routes, isLoading, createRoute, updateRoute, deleteRoute, createStop, updateStop, deleteStop } = useAdminBusRoutes();
   const { data: graph, isLoading: graphLoading } = useCampusGraph();
+  const { data: editorStops } = useRouteStops(editingRouteVisual?.id ?? '');
 
   const mapRef = useRef<MapView>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -44,6 +48,9 @@ export function BusRoutesAdmin() {
   const [startNode, setStartNode] = useState<GraphNode | null>(null);
   const [endNode, setEndNode] = useState<GraphNode | null>(null);
   const [graphRouteResult, setGraphRouteResult] = useState<GraphRouteResult | null>(null);
+  const [visualEditorMode, setVisualEditorMode] = useState(false);
+  const [editorNodeIds, setEditorNodeIds] = useState<string[]>([]);
+  const [editingRouteVisual, setEditingRouteVisual] = useState<BusRoute | null>(null);
 
   const [stopName, setStopName] = useState('');
   const [stopLat, setStopLat] = useState('');
@@ -61,7 +68,34 @@ export function BusRoutesAdmin() {
     setName(''); setDesc(''); setColor('#1B6BB0');
     setSelectionMode(null);
     setStartNode(null); setEndNode(null); setGraphRouteResult(null);
+    setVisualEditorMode(false);
+    setEditorNodeIds([]);
   }, []);
+
+  const editorWaypoints = useMemo(() => {
+    if (!graph || editorNodeIds.length < 2) return graphRouteResult?.waypoints ?? [];
+    const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+    const wp: GeoCoordinate[] = [];
+    for (const id of editorNodeIds) {
+      const node = nodeMap.get(id);
+      if (node) wp.push({ latitude: node.latitude, longitude: node.longitude });
+    }
+    return wp;
+  }, [graph, editorNodeIds, graphRouteResult]);
+
+  const handleEditorNodeAdd = useCallback(
+    (node: GraphNode) => {
+      setEditorNodeIds((prev) => [...prev, node.id]);
+    },
+    [],
+  );
+
+  const handleEditorNodeRemove = useCallback(
+    (nodeId: string) => {
+      setEditorNodeIds((prev) => prev.filter((id) => id !== nodeId));
+    },
+    [],
+  );
 
   const handleMapPress = useCallback(
     (e: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
@@ -183,10 +217,44 @@ export function BusRoutesAdmin() {
   const graphNodes = useMemo(() => graph?.nodes ?? [], [graph]);
   const hasNodes = graphNodes.length > 0;
 
+  const editorRouteWaypoints = useMemo(() => {
+    const stops = editorStops ?? [];
+    return stops.map((s) => ({ latitude: s.latitude, longitude: s.longitude }));
+  }, [editorStops]);
+
+  const editorRouteNodeIds = useMemo(() => {
+    if (!graph) return [] as string[];
+    const stops = editorStops ?? [];
+    const ids: string[] = [];
+    for (const stop of stops) {
+      const node = graph.nodes.find(
+        (n) => Math.abs(n.latitude - stop.latitude) < 0.00005 && Math.abs(n.longitude - stop.longitude) < 0.00005,
+      );
+      if (node && !ids.includes(node.id)) ids.push(node.id);
+    }
+    return ids;
+  }, [graph, editorStops]);
+
+  // Initialize editor node IDs from graph route result
+  React.useEffect(() => {
+    if (graphRouteResult && graph) {
+      const wp = graphRouteResult.waypoints;
+      const ids: string[] = [];
+      for (const w of wp) {
+        const node = graph.nodes.find(
+          (n) => Math.abs(n.latitude - w.latitude) < 0.00005 && Math.abs(n.longitude - w.longitude) < 0.00005,
+        );
+        if (node && !ids.includes(node.id)) ids.push(node.id);
+      }
+      setEditorNodeIds(ids);
+    }
+  }, [graphRouteResult, graph]);
+
   if (isLoading) return <ActivityIndicator size="large" color={T.primary} style={{ marginTop: 40 }} />;
 
   return (
-    <ScrollView
+    <>
+      <ScrollView
       ref={scrollRef}
       contentContainerStyle={s.container}
       keyboardShouldPersistTaps="handled"
@@ -346,6 +414,27 @@ export function BusRoutesAdmin() {
                   </View>
                 </View>
               )}
+
+              {graphRouteResult && (
+                <AppButton
+                  size="sm"
+                  variant={visualEditorMode ? 'outline' : 'primary'}
+                  label={visualEditorMode ? 'Cerrar editor visual' : 'Abrir editor visual'}
+                  onPress={() => setVisualEditorMode(!visualEditorMode)}
+                />
+              )}
+
+              {visualEditorMode && graphRouteResult && (
+                <RouteVisualEditor
+                  nodes={graphNodes}
+                  waypoints={editorWaypoints}
+                  routeColor={color}
+                  nodeIds={editorNodeIds}
+                  onWaypointsChange={() => {}}
+                  onNodeAdd={handleEditorNodeAdd}
+                  onNodeRemove={handleEditorNodeRemove}
+                />
+              )}
             </>
           )}
 
@@ -381,7 +470,7 @@ export function BusRoutesAdmin() {
               )}
             </View>
             <View style={s.routeActions}>
-              <AppButton label="" variant="ghost" size="sm" icon={<Edit2 size={16} color={T.textSecondary} />} onPress={() => startEditRoute(route)} />
+              <AppButton label="" variant="ghost" size="sm" icon={<Edit2 size={16} color={T.textSecondary} />} onPress={() => setEditingRouteVisual(route)} />
               <AppButton label="" variant="ghost" size="sm" icon={<Trash2 size={16} color={T.error} />} onPress={() => handleDeleteRoute(route)} />
             </View>
           </View>
@@ -415,6 +504,46 @@ export function BusRoutesAdmin() {
 
       <View style={{ height: 60 }} />
     </ScrollView>
+
+    <Modal
+      visible={!!editingRouteVisual}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={() => setEditingRouteVisual(null)}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: T.background }}>
+        <View style={s.modalHeader}>
+          <Pressable onPress={() => setEditingRouteVisual(null)} hitSlop={8}>
+            <X size={22} strokeWidth={2} color={T.textPrimary} />
+          </Pressable>
+          <Text style={{ ...Typography.h3, color: T.textPrimary, flex: 1 }} numberOfLines={1}>
+            {editingRouteVisual?.name ?? 'Editar Ruta'}
+          </Text>
+        </View>
+
+        {editingRouteVisual && graph ? (
+            <RouteVisualEditor
+              nodes={graphNodes}
+              waypoints={editorRouteWaypoints}
+              routeColor={editingRouteVisual.color}
+              nodeIds={editorRouteNodeIds}
+              onWaypointsChange={() => {}}
+            onWaypointsChange={() => {}}
+            onNodeAdd={(node) => {
+              console.log('[BusRoutesAdmin] Nodo agregado a la ruta:', node.label);
+            }}
+            onNodeRemove={(nodeId) => {
+              console.log('[BusRoutesAdmin] Nodo removido de la ruta:', nodeId);
+            }}
+          />
+        ) : (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <ActivityIndicator size="large" color={T.primary} />
+          </View>
+        )}
+      </SafeAreaView>
+    </Modal>
+    </>
   );
 }
 
@@ -432,6 +561,14 @@ const s = StyleSheet.create({
   half: { flex: 1 },
   row: { flexDirection: 'row', gap: 10 },
   formTitle: { ...Typography.h4, color: T.textPrimary, marginBottom: 2 },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: T.divider,
+    gap: 12,
+  },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
 
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
