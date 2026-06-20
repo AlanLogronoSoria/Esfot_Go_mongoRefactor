@@ -19,6 +19,7 @@ function CustomDrawerContent() {
   const ue = user ? new UserEntity(user) : null;
   const isAdmin = user?.role === 'administrador' || user?.role === 'gestor';
   const isDocente = user?.role === 'docente';
+  const isEstudiante = user?.role === 'estudiante';
 
   const handleLogout = async () => {
     await secureLogout();
@@ -37,6 +38,7 @@ function CustomDrawerContent() {
       { Icon: Upload, label: 'Carga Masiva', route: '/bulk-upload', color: T.success },
     ] : []),
     ...(isDocente ? [{ Icon: GraduationCap, label: 'Tutorias', route: '/tutorias', color: T.highlight }] : []),
+    ...(isEstudiante ? [{ Icon: GraduationCap, label: 'Agendar Tutorias', route: '/tutorias', color: T.primary }] : []),
     { Icon: MessageCircle, label: 'Chat', route: '/chat', color: T.primary },
     { Icon: Settings2, label: 'Configuracion', route: '/config', color: T.textSecondary },
     { Icon: HelpCircle, label: 'Ayuda', route: '/help', color: T.textSecondary },

@@ -39,7 +39,7 @@ function RouteCard({
   const isFav = useFavoritesStore((s) => s.isRouteFavorite(route.id));
   const toggleRouteFav = useFavoritesStore((s) => s.toggleRoute);
   const role = useAuthStore((s) => s.user?.role);
-  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente';
+  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente' || role === 'estudiante';
 
   return (
     <AnimatedPressable

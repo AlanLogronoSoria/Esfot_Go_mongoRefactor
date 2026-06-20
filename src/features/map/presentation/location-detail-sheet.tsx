@@ -23,7 +23,7 @@ export function LocationDetailSheet({ location, onClose, onNavigate, onMoreInfo,
   const isFav = useFavoritesStore((s) => location ? s.isFavorite(location.id) : false);
   const toggleFavorite = useFavoritesStore((s) => s.toggleLocation);
   const role = useAuthStore((s) => s.user?.role);
-  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente';
+  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente' || role === 'estudiante';
   const snapPoints = useMemo(() => ['35%', '65%', '92%'], []);
   const config = useMemo(() => location ? getCategoryConfig(location.category) : null, [location]);
 

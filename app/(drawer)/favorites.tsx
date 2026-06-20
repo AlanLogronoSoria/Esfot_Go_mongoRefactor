@@ -59,7 +59,7 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const role = useAuthStore((s) => s.user?.role);
   const uid = useAuthStore((s) => s.user?.id);
-  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente';
+  const canFav = role === 'administrador' || role === 'gestor' || role === 'docente' || role === 'estudiante';
 
   const [activeTab, setActiveTab] = useState<FavTab>('aulas');
   const { aulas, edificios, rutas, ubicaciones, total, isLoading, countByType } = useFavoritesByType();
